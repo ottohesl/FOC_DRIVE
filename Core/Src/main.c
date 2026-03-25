@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "adc.h"
 #include "fdcan.h"
 #include "i2c.h"
@@ -30,6 +31,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ottohesl.h"
+#include "ottohesl_OLED.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +57,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 typedef void (*pFunction)(void);
 #define APP_ADDRESS    0x08004000
@@ -121,17 +124,24 @@ int main(void)
   MX_I2C3_Init();
   MX_SPI1_Init();
   MX_SPI2_Init();
-  MX_USB_Device_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_SET);
-  uint32_t tick = HAL_GetTick();
+  OLED_Init();
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_SET);//开启LED
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    OTTO_usb_cdc("没有问题");
     // uint8_t buffer[64] = "Hello USB CDC\n";
     // CDC_Transmit_FS(buffer, strlen((char*)buffer));
     // if(HAL_GetTick() - tick > 3000)
@@ -195,6 +205,28 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM20 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM20)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
