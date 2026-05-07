@@ -41,10 +41,21 @@ add_executable(${CMAKE_PROJECT_NAME}
         BSP_Layer/Encoder/as5600.c
         BSP_Layer/Main_Freertos/Main_Freertos.c
         BSP_Layer/Main_Freertos/Main_Freertos.h
+        BSP_Layer/FOC/FOC_Math.h
+        BSP_Layer/FOC/FOC_Math.c
+        BSP_Layer/FOC/FOC_PID.c
+        BSP_Layer/FOC/FOC_PID.h
+        BSP_Layer/FOC/FOC_RUN.c
+        BSP_Layer/FOC/FOC_RUN.h
+        BSP_Layer/Menu/LCD_1.14.c
+        BSP_Layer/Menu/LCD_1.14.h
 )
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
+
+# Add touchgfx generated sources and libraries
+add_subdirectory(cmake/touchgfx)
 
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -52,6 +63,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Middle_Layer/ottohesl
         BSP_Layer/Menu
         BSP_Layer/Encoder
+        BSP_Layer/FOC
 )
 
 # Add sources to executable
@@ -65,6 +77,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Middle_Layer/ottohesl
         BSP_Layer/Menu
         BSP_Layer/Encoder
+        BSP_Layer/FOC
 )
 
 # Add project symbols (macros)

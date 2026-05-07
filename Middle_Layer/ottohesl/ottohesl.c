@@ -18,8 +18,6 @@
   *2026/3/22            v1.2       配置USB的CDC虚拟串口功能，可不用串口只需连接USB线即可查看数据
  */
 #include "ottohesl.h"
-#include "usb_device.h"
-#include "usbd_cdc_if.h"
 #include "main.h"
 
 /**
@@ -30,6 +28,11 @@
 #define debug_mode  0       /**< 串口调试模式开关：1=开启（调用uart_debugger），0=关闭 */
 #define LCD         0       /**< LCD调试模式开关：1=开启（显示HAL状态到1.54寸LCD），0=关闭 */
 #define open_freertos  0    /**< FREERTOS：1=开启(互斥锁)，0=关闭 */
+#define HAVE_USB 0
+#if HAVE_USB
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+#endif
 /** @} */
 
 /**
@@ -198,6 +201,7 @@ void uart_debugger(UART_HandleTypeDef *huart, HAL_StatusTypeDef status) {
     }
 
 }
+#if HAVE_USB
 /**
   * @brief  USB CDC 虚拟串口格式化发送函数（阻塞模式）
   * @param  fmt: 格式化字符串（支持%d/%s/%f等）
@@ -240,8 +244,7 @@ void OTTO_usb_cdc_send(uint8_t *data) {
     uint16_t len = strlen((char *)data);
     CDC_Transmit_FS(data, len);
 }
-
-
+#endif
 
 
 
