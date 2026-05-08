@@ -236,17 +236,32 @@ void LCD_Show_Image(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_
 
 void LCD_TouchGFX_Flush(const uint16_t *frameBuffer)
 {
-    // 1. 设置全屏
+    // 1. 窗口
     LCD_Address_Set(0, 0, LCD_Width - 1, LCD_Height - 1);
-
-    // 2. 数据模式
     LCD_DC(1);
 
-    // 3. 整块直接发送 TouchGFX 帧缓冲区（最快速）
-    uint32_t totalBytes = LCD_Width * LCD_Height * 2;
+    uint32_t total = LCD_Width * LCD_Height;
+    const uint16_t *src = frameBuffer;
 
-    // 直接用你的 SPI 发送
-    LCD_SPI_Send((uint8_t *)frameBuffer, totalBytes);
+    const uint32_t block = LCD_Buf_Size / 2;
+
+    while (total > 0)
+    {
+        uint32_t cnt = total > block ? block : total;
+
+        // 翻转字节序 → 写入你现有的小缓存
+        for (uint32_t i = 0; i < cnt; i++)
+        {
+            uint16_t c = src[i];
+            lcd_buf[i*2]   = (c >> 8) & 0xFF;
+            lcd_buf[i*2+1] = c & 0xFF;
+        }
+
+        LCD_SPI_Send(lcd_buf, cnt * 2);
+
+        src += cnt;
+        total -= cnt;
+    }
 }
 // ==============================
 // 初始化

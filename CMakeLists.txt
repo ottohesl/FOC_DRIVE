@@ -35,7 +35,6 @@ enable_language(C ASM)
 add_executable(${CMAKE_PROJECT_NAME}
         Middle_Layer/ottohesl/ottohesl.c
         Middle_Layer/ottohesl/ottohesl.h
-        BSP_Layer/Menu/OLED_Menu.c
         BSP_Layer/Menu/oledfont.c
         BSP_Layer/Menu/ottohesl_OLED.c
         BSP_Layer/Encoder/as5600.c

@@ -47,26 +47,19 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-/* Definitions for FOC */
-osThreadId_t FOCHandle;
-const osThreadAttr_t FOC_attributes = {
-  .name = "FOC",
-  .priority = (osPriority_t) osPriorityHigh,
-  .stack_size = 128 * 4
-};
-/* Definitions for OLED */
-osThreadId_t OLEDHandle;
-const osThreadAttr_t OLED_attributes = {
-  .name = "OLED",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
 /* Definitions for TouchGFX */
 osThreadId_t TouchGFXHandle;
 const osThreadAttr_t TouchGFX_attributes = {
   .name = "TouchGFX",
-  .priority = (osPriority_t) osPriorityNormal3,
-  .stack_size = 422 * 4
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 4096 * 4
+};
+/* Definitions for FOC */
+osThreadId_t FOCHandle;
+const osThreadAttr_t FOC_attributes = {
+  .name = "FOC",
+  .priority = (osPriority_t) osPriorityAboveNormal,
+  .stack_size = 512 * 4
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,9 +67,8 @@ const osThreadAttr_t TouchGFX_attributes = {
 
 /* USER CODE END FunctionPrototypes */
 
-void FOC_Task(void *argument);
-void OLED_Task(void *argument);
 void TouchGFX_Task(void *argument);
+void FOC_Task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -107,14 +99,11 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of FOC */
-  FOCHandle = osThreadNew(FOC_Task, NULL, &FOC_attributes);
-
-  /* creation of OLED */
-  OLEDHandle = osThreadNew(OLED_Task, NULL, &OLED_attributes);
-
   /* creation of TouchGFX */
   TouchGFXHandle = osThreadNew(TouchGFX_Task, NULL, &TouchGFX_attributes);
+
+  /* creation of FOC */
+  FOCHandle = osThreadNew(FOC_Task, NULL, &FOC_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -126,48 +115,12 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_FOC_Task */
+/* USER CODE BEGIN Header_TouchGFX_Task */
 /**
-  * @brief  Function implementing the FOC thread.
+  * @brief  Function implementing the TouchGFX thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_FOC_Task */
-__weak void FOC_Task(void *argument)
-{
-  /* USER CODE BEGIN FOC_Task */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END FOC_Task */
-}
-
-/* USER CODE BEGIN Header_OLED_Task */
-/**
-* @brief Function implementing the OLED thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_OLED_Task */
-__weak void OLED_Task(void *argument)
-{
-  /* USER CODE BEGIN OLED_Task */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END OLED_Task */
-}
-
-/* USER CODE BEGIN Header_TouchGFX_Task */
-/**
-* @brief Function implementing the TouchGFX thread.
-* @param argument: Not used
-* @retval None
-*/
 /* USER CODE END Header_TouchGFX_Task */
 __weak void TouchGFX_Task(void *argument)
 {
@@ -178,6 +131,24 @@ __weak void TouchGFX_Task(void *argument)
     osDelay(1);
   }
   /* USER CODE END TouchGFX_Task */
+}
+
+/* USER CODE BEGIN Header_FOC_Task */
+/**
+* @brief Function implementing the FOC thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_FOC_Task */
+__weak void FOC_Task(void *argument)
+{
+  /* USER CODE BEGIN FOC_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END FOC_Task */
 }
 
 /* Private application code --------------------------------------------------*/

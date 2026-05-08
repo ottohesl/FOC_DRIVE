@@ -13,7 +13,7 @@ extern "C" {
 #define LCD_Height      135
 
 #define Width_Offset    40
-#define Height_Offset   52
+#define Height_Offset   53
 
 #define SPI            hspi2
     /************************** 引脚定义(自行修改) **************************/

@@ -133,7 +133,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
   LCD_Init();
   HAL_TIM_Base_Start_IT(&htim4);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_SET);//开启LED
   //LCD_Draw_Circle(120,58,30);
   // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
