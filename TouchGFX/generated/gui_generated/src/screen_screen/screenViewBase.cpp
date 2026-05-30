@@ -4,6 +4,7 @@
 #include <gui_generated/screen_screen/screenViewBase.hpp>
 #include <touchgfx/Color.hpp>
 #include <images/BitmapDatabase.hpp>
+#include <texts/TextKeysAndLanguages.hpp>
 
 screenViewBase::screenViewBase()
 {
@@ -11,13 +12,91 @@ screenViewBase::screenViewBase()
     __background.setColor(touchgfx::Color::getColorFromRGB(0, 0, 0));
     add(__background);
 
-    box1.setPosition(0, 0, 240, 135);
-    box1.setColor(touchgfx::Color::getColorFromRGB(255, 0, 0));
-    add(box1);
+    scalableImage1.setBitmap(touchgfx::Bitmap(BITMAP_FOC_BACK_NEW400_ID));
+    scalableImage1.setPosition(0, 0, 240, 135);
+    scalableImage1.setScalingAlgorithm(touchgfx::ScalableImage::NEAREST_NEIGHBOR);
+    add(scalableImage1);
 
-    image1.setXY(0, 0);
-    image1.setBitmap(touchgfx::Bitmap(BITMAP_FOC_UI1_ID));
-    add(image1);
+    Voltage.setXY(156, 52);
+    Voltage.setColor(touchgfx::Color::getColorFromRGB(255, 238, 0));
+    Voltage.setLinespacing(0);
+    Unicode::snprintf(VoltageBuffer, VOLTAGE_SIZE, "%s", touchgfx::TypedText(T_INIT_V).getText());
+    Voltage.setWildcard(VoltageBuffer);
+    Voltage.resizeToCurrentText();
+    Voltage.setTypedText(touchgfx::TypedText(T_VOLTAGE));
+    add(Voltage);
+
+    CUR1.setXY(58, 25);
+    CUR1.setColor(touchgfx::Color::getColorFromRGB(255, 228, 166));
+    CUR1.setLinespacing(0);
+    Unicode::snprintf(CUR1Buffer, CUR1_SIZE, "%s", touchgfx::TypedText(T_CUR1_NUM).getText());
+    CUR1.setWildcard(CUR1Buffer);
+    CUR1.resizeToCurrentText();
+    CUR1.setTypedText(touchgfx::TypedText(T_CUR1));
+    add(CUR1);
+
+    ANGLE1.setXY(58, 45);
+    ANGLE1.setColor(touchgfx::Color::getColorFromRGB(142, 250, 122));
+    ANGLE1.setLinespacing(0);
+    Unicode::snprintf(ANGLE1Buffer, ANGLE1_SIZE, "%s", touchgfx::TypedText(T_ANGLE1_NUM).getText());
+    ANGLE1.setWildcard(ANGLE1Buffer);
+    ANGLE1.resizeToCurrentText();
+    ANGLE1.setTypedText(touchgfx::TypedText(T_ANGLE1));
+    add(ANGLE1);
+
+    CUR2.setXY(58, 90);
+    CUR2.setColor(touchgfx::Color::getColorFromRGB(247, 217, 178));
+    CUR2.setLinespacing(0);
+    Unicode::snprintf(CUR2Buffer, CUR2_SIZE, "%s", touchgfx::TypedText(T_CUR2_NUM).getText());
+    CUR2.setWildcard(CUR2Buffer);
+    CUR2.resizeToCurrentText();
+    CUR2.setTypedText(touchgfx::TypedText(T_CUR2));
+    add(CUR2);
+
+    ANGLE2.setXY(58, 112);
+    ANGLE2.setColor(touchgfx::Color::getColorFromRGB(196, 245, 122));
+    ANGLE2.setLinespacing(0);
+    Unicode::snprintf(ANGLE2Buffer, ANGLE2_SIZE, "%s", touchgfx::TypedText(T_ANGLE2_NUM).getText());
+    ANGLE2.setWildcard(ANGLE2Buffer);
+    ANGLE2.resizeToCurrentText();
+    ANGLE2.setTypedText(touchgfx::TypedText(T_ANGLE2));
+    add(ANGLE2);
+
+    MODE1.setXY(193, -2);
+    MODE1.setColor(touchgfx::Color::getColorFromRGB(110, 250, 234));
+    MODE1.setLinespacing(0);
+    Unicode::snprintf(MODE1Buffer, MODE1_SIZE, "%s", touchgfx::TypedText(T_MODE1_NUM).getText());
+    MODE1.setWildcard(MODE1Buffer);
+    MODE1.resizeToCurrentText();
+    MODE1.setTypedText(touchgfx::TypedText(T_MODE1));
+    add(MODE1);
+
+    MODE2.setXY(190, 92);
+    MODE2.setColor(touchgfx::Color::getColorFromRGB(110, 250, 234));
+    MODE2.setLinespacing(0);
+    Unicode::snprintf(MODE2Buffer, MODE2_SIZE, "%s", touchgfx::TypedText(T_MODE2_NUM).getText());
+    MODE2.setWildcard(MODE2Buffer);
+    MODE2.resizeToCurrentText();
+    MODE2.setTypedText(touchgfx::TypedText(T_MODE2));
+    add(MODE2);
+
+    RPS1.setXY(187, 12);
+    RPS1.setColor(touchgfx::Color::getColorFromRGB(124, 255, 43));
+    RPS1.setLinespacing(0);
+    Unicode::snprintf(RPS1Buffer, RPS1_SIZE, "%s", touchgfx::TypedText(T_RPS1_NUM).getText());
+    RPS1.setWildcard(RPS1Buffer);
+    RPS1.resizeToCurrentText();
+    RPS1.setTypedText(touchgfx::TypedText(T_RPS1));
+    add(RPS1);
+
+    RPS2.setXY(187, 109);
+    RPS2.setColor(touchgfx::Color::getColorFromRGB(124, 255, 43));
+    RPS2.setLinespacing(0);
+    Unicode::snprintf(RPS2Buffer, RPS2_SIZE, "%s", touchgfx::TypedText(T_RPS_NUM).getText());
+    RPS2.setWildcard(RPS2Buffer);
+    RPS2.resizeToCurrentText();
+    RPS2.setTypedText(touchgfx::TypedText(T_RPS2));
+    add(RPS2);
 }
 
 screenViewBase::~screenViewBase()

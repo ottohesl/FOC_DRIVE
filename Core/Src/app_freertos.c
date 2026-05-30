@@ -59,7 +59,7 @@ osThreadId_t FOCHandle;
 const osThreadAttr_t FOC_attributes = {
   .name = "FOC",
   .priority = (osPriority_t) osPriorityAboveNormal,
-  .stack_size = 512 * 4
+  .stack_size = 600 * 4
 };
 
 /* Private function prototypes -----------------------------------------------*/

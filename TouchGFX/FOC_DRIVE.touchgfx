@@ -5,20 +5,200 @@
         "Name": "screen",
         "Components": [
           {
-            "Type": "Box",
-            "Name": "box1",
+            "Type": "ScalableImage",
+            "Name": "scalableImage1",
             "Width": 240,
             "Height": 135,
+            "Filename": "foc_back_new400.png",
+            "ScalingAlgorithm": "Nearest-neighbor"
+          },
+          {
+            "Type": "TextArea",
+            "Name": "Voltage",
+            "X": 156,
+            "Y": 52,
+            "Width": 84,
+            "Height": 31,
+            "TextId": "Voltage",
+            "TextRotation": "0",
             "Color": {
-              "Red": 255
+              "Red": 255,
+              "Green": 238
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "init_v",
+              "UseBuffer": true,
+              "BufferSize": 10
             }
           },
           {
-            "Type": "Image",
-            "Name": "image1",
-            "Width": 240,
-            "Height": 135,
-            "RelativeFilename": "FOC_ui1.png"
+            "Type": "TextArea",
+            "Name": "CUR1",
+            "X": 58,
+            "Y": 25,
+            "Width": 50,
+            "Height": 20,
+            "TextId": "cur1",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 255,
+              "Green": 228,
+              "Blue": 166
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "cur1_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "ANGLE1",
+            "X": 58,
+            "Y": 45,
+            "Width": 54,
+            "Height": 20,
+            "TextId": "angle1",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 142,
+              "Green": 250,
+              "Blue": 122
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "angle1_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "CUR2",
+            "X": 58,
+            "Y": 90,
+            "Width": 58,
+            "Height": 20,
+            "TextId": "cur2",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 247,
+              "Green": 217,
+              "Blue": 178
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "cur2_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "ANGLE2",
+            "X": 58,
+            "Y": 112,
+            "Width": 58,
+            "Height": 20,
+            "TextId": "angle2",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 196,
+              "Green": 245,
+              "Blue": 122
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "angle2_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "MODE1",
+            "X": 193,
+            "Y": -2,
+            "Width": 35,
+            "Height": 17,
+            "TextId": "mode1",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 110,
+              "Green": 250,
+              "Blue": 234
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "mode1_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "MODE2",
+            "X": 190,
+            "Y": 92,
+            "Width": 38,
+            "Height": 17,
+            "TextId": "mode2",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 110,
+              "Green": 250,
+              "Blue": 234
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "mode2_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "RPS1",
+            "X": 187,
+            "Y": 12,
+            "Width": 62,
+            "Height": 18,
+            "TextId": "rps1",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 124,
+              "Green": 255,
+              "Blue": 43
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "rps1_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
+          },
+          {
+            "Type": "TextArea",
+            "Name": "RPS2",
+            "X": 187,
+            "Y": 109,
+            "Width": 59,
+            "Height": 18,
+            "TextId": "rps2",
+            "TextRotation": "0",
+            "Color": {
+              "Red": 124,
+              "Green": 255,
+              "Blue": 43
+            },
+            "AutoSize": true,
+            "Wildcard1": {
+              "TextId": "rps_num",
+              "UseBuffer": true,
+              "BufferSize": 10
+            }
           }
         ],
         "Interactions": [],

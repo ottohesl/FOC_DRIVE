@@ -134,13 +134,13 @@ int main(void)
   LCD_Init();
   HAL_TIM_Base_Start_IT(&htim4);
   //LCD_Draw_Circle(120,58,30);
-  // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  // HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   // // 互补通道
-  // HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-  // HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-  // HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
   /* USER CODE END 2 */
 
   /* Init scheduler */

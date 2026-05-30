@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdarg.h>
 #include "lcd_1.14.h"
 #include "spi.h"
 
@@ -120,7 +122,96 @@ void LCD_Fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color
         }
     }
 }
+/**
+ * @brief  LCD格式化打印 (32*32 Impact 30pt字体，仅支持 空格/-/./0-9)
+ * @param  x        起始X坐标
+ * @param  y        起始Y坐标
+ * @param  color    字符颜色
+ * @param  fmt      格式化字符串(兼容printf语法)
+ * @param  ...      可变参数
+ * @note   仅绘制字符像素，背景由 LCD_Clear / LCD_Fill 统一设置
+*/
+#define LCD_COLUMN    240
+#define LCD_ROW       135
+void LCD_Printf(uint16_t x, uint16_t y, uint16_t color, const char *fmt, ...) {
+    // 1. 边界防护（对标OLED，防止越界崩溃）
+    if(x >= LCD_COLUMN || y >= LCD_ROW || fmt == NULL)
+        return;
 
+    // 2. 可变参数格式化（支持 %d 数字打印）
+    char buf[128] = {0};
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    // 3. 核心参数（严格匹配32×32字模，禁止修改！）
+    uint16_t curr_col = x;    // 当前X坐标
+    uint16_t curr_row = y;    // 当前Y坐标
+    const uint16_t CHAR_W     = 24;   // 32点阵字模 → 宽度必须32
+    const uint16_t CHAR_H     = 32;   // 32点阵字模 → 高度必须32
+    const uint16_t line_h     = 32;   // 行高
+    const uint8_t  byte_per_row = 4;  // 每行4字节(32bit)
+
+    const char *p = buf;
+    while (*p != '\0' && (curr_row + CHAR_H) <= LCD_ROW) {
+        // 换行处理
+        if (*p == '\n') {
+            curr_col = x;
+            curr_row += line_h;
+            p++;
+            continue;
+        }
+
+        // 自动换行（屏幕宽度不足）
+        if (curr_col + CHAR_W > LCD_COLUMN) {
+            curr_col = x;
+            curr_row += line_h;
+            if (curr_row + CHAR_H > LCD_ROW) break;
+        }
+
+        // ===================== 字符索引映射（100%正确） =====================
+        uint8_t font_idx = 0;
+        uint8_t ch = *p;
+        switch (ch) {
+            case ' ':  font_idx = 0;  break;
+            case '-':  font_idx = 1;  break;
+            case '.':  font_idx = 2;  break;
+            case '1':  font_idx = 3;  break;
+            case '2':  font_idx = 4;  break;
+            case '3':  font_idx = 5;  break;
+            case '4':  font_idx = 6;  break;
+            case '5':  font_idx = 7;  break;
+            case '6':  font_idx = 8;  break;
+            case '7':  font_idx = 9; break;
+            case '8':  font_idx = 10; break;
+            case '9':  font_idx = 11; break;
+            case '0':  font_idx = 12;  break;
+            default:   font_idx = 0;  break;
+        }
+
+        // ===================== 绘制32×32字符（对标OLED，无重叠） =====================
+        for (uint16_t row = 0; row < CHAR_H; row++) {
+            for (uint8_t b = 0; b < byte_per_row; b++) {
+                uint8_t font_data = impact_3232[font_idx][row * byte_per_row + b];
+                // 高位在前，逐像素绘制
+                for (uint8_t bit = 0; bit < 8; bit++) {
+                    uint16_t draw_x = curr_col + b * 8 + bit;
+                    uint16_t draw_y = curr_row + row;
+
+                    if (draw_x >= LCD_COLUMN || draw_y >= LCD_ROW) continue;
+                    if (font_data & (0x80 >> bit)) {
+                        LCD_Draw_ColorPoint(draw_x, draw_y, color);
+                    }
+                }
+            }
+        }
+
+        // 字符后移 32像素（32点阵标准间距，不重叠、不错位）
+        curr_col += CHAR_W;
+        p++;
+    }
+}
 // ==============================
 // 画点
 // ==============================

@@ -28,23 +28,35 @@ set(TouchGFX_Src
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/CompressedFontCache.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/CompressedUnmappedFontCache.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/FontCache.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_verdana_10_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_2_15_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_2_16_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_2_18_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_2_20_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_2_30_4bpp_0.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_impact_30_4bpp_0.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_verdana_20_4bpp_0.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Font_verdana_40_4bpp_0.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/GeneratedFont.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_verdana_10_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_2_15_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_2_16_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_2_18_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_2_20_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_2_30_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_impact_30_4bpp.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_verdana_20_4bpp.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Kerning_verdana_40_4bpp.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_verdana_10_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_2_15_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_2_16_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_2_18_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_2_20_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_2_30_4bpp.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_impact_30_4bpp.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_verdana_20_4bpp.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/Table_verdana_40_4bpp.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/UnmappedDataFont.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/fonts/src/VectorFontRendererBuffers.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/gui_generated/src/common/FrontendApplicationBase.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/gui_generated/src/screen_screen/screenViewBase.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/images/src/BitmapDatabase.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/images/src/SVGDatabase.cpp
-    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/images/src/image_FOC_ui1.cpp
+    ${CMAKE_SOURCE_DIR}/TouchGFX/generated/images/src/image_foc_back_new400.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/texts/src/LanguageGb.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/texts/src/Texts.cpp
     ${CMAKE_SOURCE_DIR}/TouchGFX/generated/texts/src/TypedTextDatabase.cpp

@@ -13,17 +13,35 @@ class FlashDataReader;
 
 struct Typography
 {
-    static const touchgfx::FontId DEFAULT = 0;
-    static const touchgfx::FontId LARGE = 1;
-    static const touchgfx::FontId SMALL = 2;
+    static const touchgfx::FontId NUM = 0;
+    static const touchgfx::FontId NUM_AUTO_GENERATED_FOR_GB = 1;
+    static const touchgfx::FontId V = 2;
+    static const touchgfx::FontId V_AUTO_GENERATED_FOR_GB = 3;
+    static const touchgfx::FontId CUR = 4;
+    static const touchgfx::FontId CUR_AUTO_GENERATED_FOR_GB = 5;
+    static const touchgfx::FontId ANGLE = 6;
+    static const touchgfx::FontId ANGLE_AUTO_GENERATED_FOR_GB = 7;
+    static const touchgfx::FontId MODE = 8;
+    static const touchgfx::FontId MODE_AUTO_GENERATED_FOR_GB = 9;
+    static const touchgfx::FontId RPS = 10;
+    static const touchgfx::FontId RPS_AUTO_GENERATED_FOR_GB = 11;
 };
 
 struct TypographyFontIndex
 {
-    static const touchgfx::FontId DEFAULT = 0; // verdana_20_4bpp
-    static const touchgfx::FontId LARGE = 1;   // verdana_40_4bpp
-    static const touchgfx::FontId SMALL = 2;   // verdana_10_4bpp
-    static const uint16_t NUMBER_OF_FONTS = 3;
+    static const touchgfx::FontId NUM = 0;                         // verdana_20_4bpp
+    static const touchgfx::FontId NUM_AUTO_GENERATED_FOR_GB = 0;   // verdana_20_4bpp
+    static const touchgfx::FontId V = 1;                           // impact_2_30_4bpp
+    static const touchgfx::FontId V_AUTO_GENERATED_FOR_GB = 2;     // impact_30_4bpp
+    static const touchgfx::FontId CUR = 0;                         // verdana_20_4bpp
+    static const touchgfx::FontId CUR_AUTO_GENERATED_FOR_GB = 3;   // impact_2_20_4bpp
+    static const touchgfx::FontId ANGLE = 3;                       // impact_2_20_4bpp
+    static const touchgfx::FontId ANGLE_AUTO_GENERATED_FOR_GB = 3; // impact_2_20_4bpp
+    static const touchgfx::FontId MODE = 4;                        // impact_2_15_4bpp
+    static const touchgfx::FontId MODE_AUTO_GENERATED_FOR_GB = 4;  // impact_2_15_4bpp
+    static const touchgfx::FontId RPS = 5;                         // impact_2_16_4bpp
+    static const touchgfx::FontId RPS_AUTO_GENERATED_FOR_GB = 6;   // impact_2_18_4bpp
+    static const uint16_t NUMBER_OF_FONTS = 7;
 };
 
 class ApplicationFontProvider : public touchgfx::FontProvider

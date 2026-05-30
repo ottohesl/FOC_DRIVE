@@ -1,9 +1,6 @@
 #include "Main_Freertos.h"
 #include "FOC_RUN.h"
 #include "LCD_1.14.h"
-#include "ottohesl.h"
-
-
 void FOC_Task(void *argument)
 {
     /* init code for USB_Device */

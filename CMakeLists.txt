@@ -48,6 +48,11 @@ add_executable(${CMAKE_PROJECT_NAME}
         BSP_Layer/FOC/FOC_RUN.h
         BSP_Layer/Menu/LCD_1.14.c
         BSP_Layer/Menu/LCD_1.14.h
+        BSP_Layer/Menu/LCD_FONT.c
+        BSP_Layer/Menu/LCD_FONT.h
+        TouchGFX/gui/include/gui/screen_screen/screenView.hpp
+        Middle_Layer/UI/UI_Component.h
+        Middle_Layer/UI/UI_Component.c
 )
 
 # Add STM32CubeMX generated sources
@@ -63,6 +68,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
         BSP_Layer/Menu
         BSP_Layer/Encoder
         BSP_Layer/FOC
+        BSP_Layer/Main_Freertos
+        Middle_Layer
 )
 
 # Add sources to executable
@@ -77,6 +84,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         BSP_Layer/Menu
         BSP_Layer/Encoder
         BSP_Layer/FOC
+        BSP_Layer/Main_Freertos
+        Middle_Layer
 )
 
 # Add project symbols (macros)
@@ -92,6 +101,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+)
+target_include_directories(TouchGFX PRIVATE
+        ${CMAKE_SOURCE_DIR}/Middle_Layer
+        ${CMAKE_SOURCE_DIR}/BSP_Layer/Main_Freertos
+        ${CMAKE_SOURCE_DIR}/BSP_Layer/FOC
+        ${CMAKE_SOURCE_DIR}/BSP_Layer/Menu
+        ${CMAKE_SOURCE_DIR}/BSP_Layer/Encoder
 )
 set(COMMON_FLAGS "-u _printf_float")  # 启用浮点printf支持
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS}")

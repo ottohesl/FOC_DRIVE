@@ -26,6 +26,7 @@
 #include <touchgfx/hal/OSWrappers.hpp>
 extern "C" {
 #include "LCD_1.14.h"
+#include "Main_Freertos.h"
 }
 using namespace touchgfx;
 

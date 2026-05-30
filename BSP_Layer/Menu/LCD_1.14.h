@@ -7,6 +7,7 @@ extern "C" {
 
 #include "stm32G4xx_hal.h"
 #include <stdint.h>
+#include "LCD_FONT.h"
 
     /************************** LCD 硬件参数 **************************/
 #define LCD_Width       240
@@ -58,7 +59,10 @@ extern "C" {
     void LCD_Write_HalfWord(const uint16_t da);
     void LCD_Show_Image(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t *p);
     void LCD_TouchGFX_Flush(const uint16_t *frameBuffer);
-
+    void LCD_Show_Char(uint16_t x, uint16_t y, uint8_t chr, uint16_t charColor, uint16_t bkColor);
+    void LCD_Show_String(uint16_t x, uint16_t y, char *str, uint16_t charColor, uint16_t bkColor);
+    void LCD_Printf(uint16_t x, uint16_t y, uint16_t color, const char *fmt, ...);
+    extern const uint8_t LCD_asc2_1608[95][16];
 #ifdef __cplusplus
 }
 #endif

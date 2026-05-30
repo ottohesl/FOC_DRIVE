@@ -7,7 +7,7 @@
 #define AS5600_RAW_ANG_L   0x0D    // 原始角度低字节寄存器
 #define AS5600_ERROR       0xFFFF  // 错误返回值
 #define AS5600_DEG_ERROR   NAN     // 使用标准NaN表示错误
-#define i2c_AS5600         hi2c1
+#define i2c_AS5600         hi2c3
 // 函数声明
 uint16_t AS5600_ReadRawAngle(I2C_HandleTypeDef *hi2c);
 float AS5600_GetAngleDegrees(I2C_HandleTypeDef *hi2c);

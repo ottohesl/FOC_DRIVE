@@ -8,7 +8,8 @@
 #include <mvp/View.hpp>
 #include <gui/screen_screen/screenPresenter.hpp>
 #include <touchgfx/widgets/Box.hpp>
-#include <touchgfx/widgets/Image.hpp>
+#include <touchgfx/widgets/ScalableImage.hpp>
+#include <touchgfx/widgets/TextAreaWithWildcard.hpp>
 
 class screenViewBase : public touchgfx::View<screenPresenter>
 {
@@ -35,8 +36,38 @@ protected:
      * Member Declarations
      */
     touchgfx::Box __background;
-    touchgfx::Box box1;
-    touchgfx::Image image1;
+    touchgfx::ScalableImage scalableImage1;
+    touchgfx::TextAreaWithOneWildcard Voltage;
+    touchgfx::TextAreaWithOneWildcard CUR1;
+    touchgfx::TextAreaWithOneWildcard ANGLE1;
+    touchgfx::TextAreaWithOneWildcard CUR2;
+    touchgfx::TextAreaWithOneWildcard ANGLE2;
+    touchgfx::TextAreaWithOneWildcard MODE1;
+    touchgfx::TextAreaWithOneWildcard MODE2;
+    touchgfx::TextAreaWithOneWildcard RPS1;
+    touchgfx::TextAreaWithOneWildcard RPS2;
+
+    /*
+     * Wildcard Buffers
+     */
+    static const uint16_t VOLTAGE_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar VoltageBuffer[VOLTAGE_SIZE];
+    static const uint16_t CUR1_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar CUR1Buffer[CUR1_SIZE];
+    static const uint16_t ANGLE1_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar ANGLE1Buffer[ANGLE1_SIZE];
+    static const uint16_t CUR2_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar CUR2Buffer[CUR2_SIZE];
+    static const uint16_t ANGLE2_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar ANGLE2Buffer[ANGLE2_SIZE];
+    static const uint16_t MODE1_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar MODE1Buffer[MODE1_SIZE];
+    static const uint16_t MODE2_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar MODE2Buffer[MODE2_SIZE];
+    static const uint16_t RPS1_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar RPS1Buffer[RPS1_SIZE];
+    static const uint16_t RPS2_SIZE = 10;
+    touchgfx::Unicode::UnicodeChar RPS2Buffer[RPS2_SIZE];
 
 private:
 

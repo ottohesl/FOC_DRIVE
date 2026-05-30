@@ -12,6 +12,28 @@ enum LANGUAGES
 
 enum TEXTS
 {
+    T_R2,
+    T_R1,
+    T_MODES2,
+    T_MODES1,
+    T_CUR1_NUM,
+    T_CUR2,
+    T_CUR1,
+    T_CUR2_NUM,
+    T_ANGLE2,
+    T_ANGLE1,
+    T_ANGLE1_NUM,
+    T_ANGLE2_NUM,
+    T_RPS_NUM,
+    T_RPS2,
+    T_RPS1_NUM,
+    T_RPS1,
+    T_MODE2_NUM,
+    T_MODE2,
+    T_MODE1_NUM,
+    T_MODE1,
+    T_INIT_V,
+    T_VOLTAGE,
     NUMBER_OF_TEXT_KEYS
 };
 

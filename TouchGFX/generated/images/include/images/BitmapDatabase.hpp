@@ -6,7 +6,7 @@
 #include <touchgfx/hal/Types.hpp>
 #include <touchgfx/Bitmap.hpp>
 
-const uint16_t BITMAP_FOC_UI1_ID = 0;
+const uint16_t BITMAP_FOC_BACK_NEW400_ID = 0;
 
 namespace BitmapDatabase
 {
