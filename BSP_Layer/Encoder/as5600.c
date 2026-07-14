@@ -1,5 +1,6 @@
 #include "as5600.h"
 #include<stdio.h>
+#include <tgmath.h>
 #define dirr_num 5//滤波大小
 int full_ration=0;//圈数
 float angle_points=0;//锚点
@@ -162,5 +163,75 @@ float AS5600_Get_Speed(I2C_HandleTypeDef *hi2c){
 	    speeds = RPS; // 保存全局速度变量（若有需要）
 
 	    return RPS;
+}
+/**
+ * @brief  AS5600机械转速计算（RPS），滑动平均滤波+过零+限幅
+ * @param  mech_angle_deg  当前机械角度（度，0~360）
+ * @param  dt              控制周期（秒）
+ * @return float           机械转速 RPS
+ */
+float AS5600_CalcSpeed_MovAvg(float mech_angle_deg)
+{
+	// 静态持久化状态变量
+	static float    last_angle     = 0.0f;    // 上一次机械角度（度）
+	static uint32_t last_tick      = 0;       // 上一次调用的系统Tick（ms）
+	static float    filtered_rps   = 0.0f;    // 滤波后输出转速
+	static uint8_t  first_run      = 1;       // 首次调用标志
+
+	// ========== 1. 首次调用：初始化状态，避免上电跳变冲击 ==========
+	if (first_run)
+	{
+		last_angle = mech_angle_deg;
+		last_tick  = HAL_GetTick();
+		first_run  = 0;
+		return 0.0f;
+	}
+
+	// ========== 2. 计算真实时间差dt，处理HAL_GetTick溢出回绕 ==========
+	uint32_t now_tick = HAL_GetTick();
+	float dt;
+
+	if (now_tick >= last_tick)
+	{
+		// 正常无溢出：Tick差 / 1000 转换为秒
+		dt = (float)(now_tick - last_tick) * 1e-3f;
+	}
+	else
+	{
+		// Tick溢出回绕：补全32位最大值的差值
+		dt = (float)(UINT32_MAX - last_tick + now_tick + 1) * 1e-3f;
+	}
+
+	// ========== 3. dt合理性钳位（防止异常值炸转速、冲坏PID） ==========
+	// 最小周期0.5ms（防止中断异常、重复调用），最大周期50ms（防止任务卡死）
+	const float dt_min = 0.0005f;
+	const float dt_max = 0.05f;
+	if (dt < dt_min)  dt = dt_min;
+	if (dt > dt_max)  dt = dt_max;
+
+	// ========== 4. 角度差计算 + 0°/360°过零处理 ==========
+	float delta_deg = mech_angle_deg - last_angle;
+
+	// 角度差超过半圈（180°），判定为过零翻转，反向补偿360°
+	if (delta_deg >  180.0f)  delta_deg -= 360.0f;
+	if (delta_deg < -180.0f)  delta_deg += 360.0f;
+
+	// ========== 5. 计算瞬时转速 RPS ==========
+	float instant_rps = (delta_deg / 360.0f) / dt;
+
+	// ========== 6. 一阶低通滤波（平滑转速，抑制编码器磁钢噪声） ==========
+	const float filter_coeff = 0.1f;  // 0.05~0.2可调，越小越平滑、响应越慢
+	filtered_rps = filtered_rps * (1.0f - filter_coeff) + instant_rps * filter_coeff;
+
+	// ========== 7. 转速硬限幅（适配电机物理极限） ==========
+	const float max_rps = 20.0f;  // 2804云台电机建议15~20，根据实际调整
+	if (filtered_rps >  max_rps)  filtered_rps =  max_rps;
+	if (filtered_rps < -max_rps)  filtered_rps = -max_rps;
+
+	// ========== 8. 更新状态变量 ==========
+	last_angle = mech_angle_deg;
+	last_tick  = now_tick;
+
+	return -filtered_rps;
 }
 

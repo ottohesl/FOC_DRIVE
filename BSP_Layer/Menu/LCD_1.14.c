@@ -134,7 +134,6 @@ void LCD_Fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color
 #define LCD_COLUMN    240
 #define LCD_ROW       135
 void LCD_Printf(uint16_t x, uint16_t y, uint16_t color, const char *fmt, ...) {
-    // 1. 边界防护（对标OLED，防止越界崩溃）
     if(x >= LCD_COLUMN || y >= LCD_ROW || fmt == NULL)
         return;
 
@@ -190,7 +189,7 @@ void LCD_Printf(uint16_t x, uint16_t y, uint16_t color, const char *fmt, ...) {
             default:   font_idx = 0;  break;
         }
 
-        // ===================== 绘制32×32字符（对标OLED，无重叠） =====================
+        // ===================== 绘制32×32字符） =====================
         for (uint16_t row = 0; row < CHAR_H; row++) {
             for (uint8_t b = 0; b < byte_per_row; b++) {
                 uint8_t font_data = impact_3232[font_idx][row * byte_per_row + b];
@@ -207,7 +206,7 @@ void LCD_Printf(uint16_t x, uint16_t y, uint16_t color, const char *fmt, ...) {
             }
         }
 
-        // 字符后移 32像素（32点阵标准间距，不重叠、不错位）
+        // 字符后移 32像素
         curr_col += CHAR_W;
         p++;
     }

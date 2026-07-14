@@ -74,7 +74,7 @@ extern "C" void Updata_Angle(float value1,float value2)
     }
 }
 
-/************************* 更新电流（已修复） **************************/
+/************************* 更新电流 **************************/
 void screenView::updateCur1(float value)
 {
     touchgfx::Unicode::snprintfFloat(CUR1Buffer, CUR1_SIZE, "%.1f", value);

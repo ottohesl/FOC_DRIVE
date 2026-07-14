@@ -18,4 +18,6 @@ typedef enum {
 }FOC_RUN_STATE;
 void SPWM_RUN(SPWM *spwm, FOC_RUN_STATE state);
 void SVPWM_RUN(SVPWM *svpwm, FOC_RUN_STATE state) ;
+void SVPWM_TIM_RUN(SVPWM *svpwm,float target_speed);
+extern float speed;
 #endif //FOC_RUN_H

@@ -37,6 +37,7 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 #define huart_debug huart3
+#define i2c_AS5600       hi2c3
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

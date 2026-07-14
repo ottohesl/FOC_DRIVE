@@ -24,12 +24,12 @@ void UI_RUN(MUY *muy1, MUY *muy2) {
 void UI_Update(void) {
     motor1.Voltage = 24.2f;
     motor1.ui.real_Angle=AS5600_GetAngleDegrees(&i2c_AS5600);
-    motor1.ui.real_Speed=AS5600_Get_Speed(&i2c_AS5600);
+    motor1.ui.real_Speed=AS5600_CalcSpeed_MovAvg(motor1.ui.real_Angle);
     motor1.ui.real_Cur= 0.1f;
     strcpy(motor1.ui.real_Mode, "pos");
     motor2.Voltage = 24.2f;
     motor2.ui.real_Angle=AS5600_GetAngleDegrees(&i2c_AS5600);
-    motor2.ui.real_Speed=AS5600_Get_Speed(&i2c_AS5600);
+    motor2.ui.real_Speed=AS5600_CalcSpeed_MovAvg(motor2.ui.real_Angle);
     motor2.ui.real_Cur= 0.2f;
     strcpy(motor2.ui.real_Mode, "spe");
     UI_RUN(&motor1,&motor2);
