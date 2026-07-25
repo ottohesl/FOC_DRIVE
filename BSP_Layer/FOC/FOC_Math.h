@@ -8,7 +8,8 @@
 #define POLE_PAIRS 7         // 极对数
 #define idr 1               // 方向
 #define SQRT_3 1.73205080757f// 根号3
-#define E_Deviation (187.0f * 360.0f / 4096.0f)
+#define E_Deviation(n) (n * 360.0f / 4096.0f)
+#define Read_E_Deviation (393 * 360.0f / 4096.0f)
 #define SQRT_3_DIV_2 0.86602540378f// 根号3/2
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 typedef struct {
@@ -55,4 +56,5 @@ void FOC_Spwm_Solve(SPWM *spwm) ;
 uint8_t Sector_Judgment(SVPWM *svpwm, uint8_t *sector);
 void VectorActionTime(SVPWM *foc_pwm, uint8_t sector, uint32_t Tpwm, float Udc);
 void FOC_Svpwm_Solve(SVPWM *svpwm);
+extern volatile uint16_t elect_offset;
 #endif //FOC_MATH_H

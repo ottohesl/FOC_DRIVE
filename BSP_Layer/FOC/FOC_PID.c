@@ -1,4 +1,9 @@
 #include "FOC_PID.h"
+
+#include <math.h>
+
+#include "FOC_Math.h"
+#include "ottohesl.h"
 /**
  * @brief PID初始化
  * @param foc_pid
@@ -38,4 +43,19 @@ void FOC_PID_SPEED(FOC_PID* S,float target_speed,float current_speed)
     //输出限幅
     if(S->_output > S->output_max) S->_output=S->output_max;
     else if (S->_output < -S->output_max) S->_output = -S->output_max;
+}
+
+void FOC_PID_CUR(FOC_PID *C, float target_cur, float current_cur) {
+    if (current_cur < 0)    C->error = current_cur-target_cur;
+    C->error = target_cur-current_cur;
+    C->integral += C->error ;  //积分累加项
+    if(C->integral > C->integral_limit) C->integral = C->integral_limit;
+    if(C->integral < -C->integral_limit) C->integral = -C->integral_limit;
+    float P = C->kp * C->error;
+    float I = C->ki * C->integral * C->Ts; //积分累加
+    float output = P + I;
+    if (output > C->output_max) output = C->output_max;
+    else if (output < -C->output_max) output = -C->output_max;
+    C->last_error = C->error;
+    C->_output = output;
 }

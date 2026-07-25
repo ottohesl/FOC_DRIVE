@@ -23,9 +23,12 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+#include "usb_device.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "FOC_Math.h"
+#include "usb_device.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,14 +55,26 @@ osThreadId_t TouchGFXHandle;
 const osThreadAttr_t TouchGFX_attributes = {
   .name = "TouchGFX",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 4096 * 4
+  .stack_size = 4000 * 4
 };
 /* Definitions for FOC */
 osThreadId_t FOCHandle;
 const osThreadAttr_t FOC_attributes = {
   .name = "FOC",
-  .priority = (osPriority_t) osPriorityAboveNormal,
-  .stack_size = 600 * 4
+  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 2000 * 4
+};
+/* Definitions for DATA */
+osThreadId_t DATAHandle;
+const osThreadAttr_t DATA_attributes = {
+  .name = "DATA",
+  .priority = (osPriority_t) osPriorityBelowNormal,
+  .stack_size = 1280 * 4
+};
+/* Definitions for VOFA */
+osMessageQueueId_t VOFAHandle;
+const osMessageQueueAttr_t VOFA_attributes = {
+  .name = "VOFA"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +84,7 @@ const osThreadAttr_t FOC_attributes = {
 
 void TouchGFX_Task(void *argument);
 void FOC_Task(void *argument);
+void DATA_Task(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -94,6 +110,10 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of VOFA */
+  VOFAHandle = osMessageQueueNew (16, sizeof(SVPWM), &VOFA_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -104,6 +124,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of FOC */
   FOCHandle = osThreadNew(FOC_Task, NULL, &FOC_attributes);
+
+  /* creation of DATA */
+  DATAHandle = osThreadNew(DATA_Task, NULL, &DATA_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -124,6 +147,8 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_TouchGFX_Task */
 __weak void TouchGFX_Task(void *argument)
 {
+  /* init code for USB_Device */
+  MX_USB_Device_Init();
   /* USER CODE BEGIN TouchGFX_Task */
   /* Infinite loop */
   for(;;)
@@ -149,6 +174,24 @@ __weak void FOC_Task(void *argument)
     osDelay(1);
   }
   /* USER CODE END FOC_Task */
+}
+
+/* USER CODE BEGIN Header_DATA_Task */
+/**
+* @brief Function implementing the DATA thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_DATA_Task */
+__weak void DATA_Task(void *argument)
+{
+  /* USER CODE BEGIN DATA_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END DATA_Task */
 }
 
 /* Private application code --------------------------------------------------*/

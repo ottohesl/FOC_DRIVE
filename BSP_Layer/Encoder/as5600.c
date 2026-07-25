@@ -232,6 +232,6 @@ float AS5600_CalcSpeed_MovAvg(float mech_angle_deg)
 	last_angle = mech_angle_deg;
 	last_tick  = now_tick;
 
-	return -filtered_rps;
+	return filtered_rps;
 }
 

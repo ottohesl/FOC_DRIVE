@@ -3,8 +3,17 @@
 #define FOC_RUN_H
 #include "FOC_Math.h"
 #include "FOC_PID.h"
+#include "Main_Freertos.h"
+#include "as5600.h"
+#include "cmsis_os2.h"
+#include "FOC_FB.h"
+#include "i2c.h"
+#include <tgmath.h>
+#include "Main_Freertos.h"
+#include "tim.h"
+#include "usart.h"
 #include "ottohesl.h"
-#define PID_FIEQ  50   //pid运算频率
+#define PID_FIEQ  10000   //pid运算频率
 #define Increment_Limit   3.0   //电压最大增量幅值（v）
 typedef enum {
     FOC_SPWM_OPEN_MODE,
@@ -19,5 +28,5 @@ typedef enum {
 void SPWM_RUN(SPWM *spwm, FOC_RUN_STATE state);
 void SVPWM_RUN(SVPWM *svpwm, FOC_RUN_STATE state) ;
 void SVPWM_TIM_RUN(SVPWM *svpwm,float target_speed);
-extern float speed;
+extern VOFA_DATA vofa_data_run;
 #endif //FOC_RUN_H

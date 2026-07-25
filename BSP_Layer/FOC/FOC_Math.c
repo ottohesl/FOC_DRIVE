@@ -16,7 +16,7 @@
 #include "ottohesl.h"
 #include "usart.h"
 /**************************基本使用函数*********************************/
-
+volatile uint16_t elect_offset = 0;
 inline float cosf(float x) { return arm_cos_f32(x); }
 inline float sinf(float x) { return arm_sin_f32(x); }
 /**
@@ -42,7 +42,7 @@ double Limit_Angle(double angle) {
  * @param  angle  输入的当前机械角度
  */
 double Solve_Electrical_Angle(double angle) {
-    angle += E_Deviation;
+    angle -= Read_E_Deviation;
     if (angle < 0) angle += 360;
     else if (angle > 360) angle -= 360;
     angle *=  (M_PI / 180.0f);
@@ -89,14 +89,17 @@ void Set_Spwm(SPWM *spwm){
  * @param  spwm   SPWM结构体的句柄，访问里面数据进行读写
  */
 void Calibrate_Zero_Eangle(SPWM *spwm) {
-    spwm->qd.uq=0;
-    spwm->qd.ud=LIN_V/2;
     spwm->elect_angle=0;
+    spwm->qd.uq=0;
+    spwm->qd.ud=3;
     FOC_Spwm_Solve(spwm);
     Set_Spwm(spwm);
-    float el_error=AS5600_ReadRawAngle(&i2c_AS5600);
-    OTTO_uart(&huart_debug,"原始编码器值为：%f",el_error);
+    //HAL_Delay(300);
+    elect_offset=AS5600_ReadRawAngle(&i2c_AS5600);
+    //OTTO_uart(&huart_debug,"原始编码器值为：%f",elect_offset);
+    OTTO_usb_cdc("编码器角度为：%d",elect_offset);
 }
+/**************************spwm实现*********************************/
 void Init_SVPWM(SVPWM *svpwm) {
     uint32_t PSC,ARR;
     Get_PSC_ARR(FOC_TIM,&PSC,&ARR);
@@ -104,13 +107,12 @@ void Init_SVPWM(SVPWM *svpwm) {
     svpwm->qd.uq=0.0f;
     svpwm->qd.ud=0.0f;
     svpwm->Tpwm = ARR + 1;
-    svpwm->K = 1.0f; // 过调制系数初始化
+    svpwm->K = 0.95f; // 过调制系数初始化
     svpwm->ab.alpha = 0.0f;
     svpwm->ab.beta = 0.0f;
     svpwm->svpwm_val1=0.0f;
     svpwm->svpwm_val2=0.0f;
 }
-/**************************spwm实现*********************************/
 /**
  * @brief  求解SPWM的相关系数
  * @param  spwm  SPWM结构体的句柄，访问里面数据进行读写
@@ -222,9 +224,9 @@ void VectorActionTime(SVPWM *foc_pwm, uint8_t sector, uint32_t Tpwm, float Udc)
     T3 += deadtime_comp;
 
     // 计算占空比
-    foc_pwm->_output.ua = (float)T1 / Tpwm * LIN_V;
-    foc_pwm->_output.ub = (float)T2 / Tpwm * LIN_V;
-    foc_pwm->_output.uc = (float)T3 / Tpwm * LIN_V;
+    foc_pwm->_output.ua = (float)T1 / (Tpwm/2.0f) * LIN_V;
+    foc_pwm->_output.ub = (float)T2 / (Tpwm/2.0f) * LIN_V;
+    foc_pwm->_output.uc = (float)T3 / (Tpwm/2.0f) * LIN_V;
 }
 /**
  * @brief 帕克逆变换
@@ -236,9 +238,9 @@ void FOC_Svpwm_Solve(SVPWM *svpwm) {
     svpwm->ab.beta = svpwm->qd.uq * cos(svpwm->elect_angle) + svpwm->qd.ud * sin(svpwm->elect_angle);
 }
 void Set_Svpwm(SVPWM *svpwm){
-    double ua=constrain((svpwm->_output.ua+LIN_V/2),0.0f,LIN_V);
-    double ub=constrain((svpwm->_output.ub+LIN_V/2),0.0f,LIN_V);
-    double uc=constrain((svpwm->_output.uc+LIN_V/2),0.0f,LIN_V);
+    double ua=constrain((svpwm->_output.ua),0.0f,LIN_V);
+    double ub=constrain((svpwm->_output.ub),0.0f,LIN_V);
+    double uc=constrain((svpwm->_output.uc),0.0f,LIN_V);
 
     // 电压转化为占空比
     float dc_a=constrain(ua/LIN_V,0.0f,1.0f);

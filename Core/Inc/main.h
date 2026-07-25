@@ -31,12 +31,12 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cmsis_os2.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-#define huart_debug huart3
+#define huart_debug      huart3
 #define i2c_AS5600       hi2c3
 /* USER CODE END ET */
 
@@ -74,13 +74,18 @@ void Error_Handler(void);
 #define SPI2_CS_GPIO_Port GPIOB
 #define SPI2_DC_Pin GPIO_PIN_14
 #define SPI2_DC_GPIO_Port GPIOB
+#define ENABLE_Pin GPIO_PIN_15
+#define ENABLE_GPIO_Port GPIOA
 #define CS_Pin GPIO_PIN_2
 #define CS_GPIO_Port GPIOD
 #define LCD_RES_Pin GPIO_PIN_6
 #define LCD_RES_GPIO_Port GPIOB
+#define CAL_Pin GPIO_PIN_7
+#define CAL_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+extern  uint8_t foc_control_time;
+  extern osMessageQueueId_t VOFAHandle;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -53,6 +53,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         TouchGFX/gui/include/gui/screen_screen/screenView.hpp
         Middle_Layer/UI/UI_Component.h
         Middle_Layer/UI/UI_Component.c
+        BSP_Layer/FOC/FOC_FB.c
+        BSP_Layer/FOC/FOC_FB.h
 )
 
 # Add STM32CubeMX generated sources

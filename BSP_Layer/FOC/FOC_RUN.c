@@ -1,15 +1,23 @@
 #include "FOC_RUN.h"
-
-#include <tgmath.h>
-
-#include "as5600.h"
-#include "cmsis_os2.h"
-#include "i2c.h"
-#include "tim.h"
-#include "usart.h"
 // 新增静态变量保存时间戳（放在函数外或用SPWM结构体存储）
 static uint32_t last_tick = 0;
-
+VOFA_DATA vofa_data_run ={
+.now_angle = 0.0f,
+    .now_speed = 0.0f,
+    .targe_angle = 0.0f,
+    .targe_speed =  0.0f,
+    .elect_angle = 0.0f,
+    .Udata.A = 0.0f,
+    .Udata.B = 0.0f,
+    .Udata.C = 0.0f,
+    .Idata.A = 0.0f,
+    .Idata.B = 0.0f,
+    .Idata.C = 0.0f,
+    .uq = 0.0f,
+    .ud = 0.0f,
+    .iq = 0.0f,
+    .id = 0.0f
+};
 void FOC_SPWM_OPEN_RUN(SPWM *spwm, double target_speed) {
 
     spwm->qd.uq = 3.0f;
@@ -40,13 +48,6 @@ void FOC_SPWM_OPEN_RUN(SPWM *spwm, double target_speed) {
     Set_Spwm(spwm);
 
     last_tick = current_tick; // 【关键补全】每次循环更新时间戳
-
-    FOC_Spwm_Solve(spwm);
-    Set_Spwm(spwm);
-    // OTTO_uart(&huart_debug,
-    //           "%.2f,%.2f,%.2f,%.2f,%.2f",
-    //           spwm->abc_v.ua,spwm->abc_v.ub,spwm->abc_v.uc,
-    //           spwm->qd.uq,spwm->elect_angle);
 }
 void FOC_SVPWM_OPEN_RUN(SVPWM *svpwm,double target_speed) {
     uint8_t N;
@@ -80,12 +81,18 @@ void FOC_SVPWM_OPEN_RUN(SVPWM *svpwm,double target_speed) {
     // 矢量时间计算
     VectorActionTime(svpwm, N, svpwm->Tpwm, LIN_V);
     Set_Svpwm(svpwm);
-    SVPWM temp = *svpwm;
-    // OTTO_uart(&huart_bluetooth,
-    //       "%f,%f,%f,%f,%f",
-    //       svpwm->_output.ua,svpwm->_output.ub,svpwm->_output.uc,
-    //       svpwm->qd.uq,svpwm->elect_angle);
-    last_tick = current_tick; // 更新时间戳
+
+    vofa_data_run.elect_angle = svpwm->elect_angle;
+    vofa_data_run.Udata.A = svpwm->abc_v.ua;
+    vofa_data_run.Udata.B = svpwm->abc_v.ub;
+    vofa_data_run.Udata.C = svpwm->abc_v.uc;
+    vofa_data_run.uq = svpwm->qd.uq;
+    vofa_data_run.ud = svpwm->qd.ud;
+    //vofa_data_run.now_speed = ;
+
+    //osMessageQueuePut(VOFAHandle,(&temp),0,0);
+    OTTO_usb_cdc("%f,%f,%f,%f,%f", svpwm->_output.ua,svpwm->_output.ub,svpwm->_output.uc,
+  svpwm->qd.uq,svpwm->elect_angle);
 }
 void SVPWM_CloseLoop(SVPWM *svpwm, double target_speed, double dt) {
     // 1. 生成平滑目标角度（和开环累加逻辑一致）
@@ -113,8 +120,8 @@ void SVPWM_CloseLoop(SVPWM *svpwm, double target_speed, double dt) {
     if(svpwm->elect_angle < 0) svpwm->elect_angle += twoPI;
 
     // 4. 恒定直交轴电压（沿用你开环参数，无需调PID）
-    svpwm->qd.ud = 0.0f;
-    svpwm->qd.uq = 2.0f; // 转矩电压，和之前一致，改这里调快慢
+    svpwm->qd.ud = 1.0f;
+    svpwm->qd.uq = 3.0f; // 转矩电压，和之前一致，改这里调快慢
     // FOC_Svpwm_Solve(svpwm);
     // uint8_t N = Sector_Judgment(svpwm, &svpwm->sector);
     // // 矢量时间计算
@@ -138,11 +145,17 @@ void SVPWM_TIM_RUN(SVPWM *svpwm,float target_speed) {
     uint8_t sector = Sector_Judgment(svpwm, &svpwm->sector);
     VectorActionTime(svpwm, sector, svpwm->Tpwm, LIN_V);
     Set_Svpwm(svpwm);
+    SVPWM temp = *svpwm;
+    //osMessageQueuePut(VOFAHandle,(&temp),0,0);
+    OTTO_usb_cdc(
+      "%f,%f,%f,%f,%f",
+      svpwm->_output.ua,svpwm->_output.ub,svpwm->_output.uc,
+      svpwm->qd.uq,svpwm->elect_angle);
 }
 FOC_PID speed_pid={
-    .kp = 2.2f,
-    .ki = 250.0f,
-    .kd = 1.0f,
+    .kp = 0.18f,
+    .ki = 50.0f,
+    .kd = 0.002f,
     ._output        = 0.0f,
     .error          = 0.0f,
     .last_error     = 0.0f,
@@ -169,29 +182,133 @@ float FOC_SPEED_FILL(float x) {
     last_tick = current_tick;
     return y;
 }
-float speed=0;
-void FOC_SVPWM_SPEED_RUN(SVPWM *svpwm,float target_speed_RPS) {
+float FOC_SVPWM_SPEED_RUN(SVPWM *svpwm,float target_speed_RPS) {
     //获取当前速度
-    float current_angle=AS5600_GetAngleDegrees(&i2c_AS5600);
+    //float current_angle=AS5600_GetAngleDegrees(&i2c_AS5600);
+    float current_angle = 0.0f;
+    static float last_valid_angle = 0.0f;
+    uint32_t timeout = 100; // 循环超时阈值
+    while(timeout--)
+    {
+        current_angle = AS5600_GetAngleDegrees(&i2c_AS5600);
+        if(!isnan(current_angle)) break;
+    }
+    // 超时仍为NaN，使用上一帧合法角度兜底，防止测速NaN
+    if(isnan(current_angle))
+    {
+        current_angle = last_valid_angle;
+    }
+    else
+    {
+        last_valid_angle = current_angle;
+    }
     float current_speed_RPS = AS5600_CalcSpeed_MovAvg(current_angle);
-    speed=current_speed_RPS;
-   // float actual_speed=FOC_SPEED_FILL(current_speed_RPS);
-    FOC_PID_SPEED(&speed_pid,target_speed_RPS,current_speed_RPS);
-    //输出限幅
-    speed_pid._output=constrain(speed_pid._output,-LIN_V,LIN_V);
-    svpwm->qd.uq = speed_pid._output;
-    svpwm->qd.ud =0;
-    //计算电角度
+    //求解电角度
+    FOC_SPEED_FILL(current_speed_RPS);
     svpwm->elect_angle = Solve_Electrical_Angle(current_angle);
-    //svpwm实现
-    FOC_Svpwm_Solve(svpwm);
+   // float actual_speed=FOC_SPEED_FILL(current_speed_RPS);
+    //float uq=foc_pid_speed(target_speed_RPS,current_speed_RPS);
+    //输出限幅
+    FOC_PID_SPEED(&speed_pid,target_speed_RPS,current_speed_RPS);
+    vofa_data_run.now_speed = current_speed_RPS;
+    vofa_data_run.targe_speed = target_speed_RPS;
+    return -speed_pid._output;
+    // svpwm->qd.uq = speed_pid._output;
+    // svpwm->qd.ud =0;
+    // //计算电角度
+    // svpwm->elect_angle = Solve_Electrical_Angle(current_angle);
+    // //svpwm实现
+    // // 矢量时间计算
+    // VectorActionTime(svpwm, N, svpwm->Tpwm, LIN_V);
+    // Set_Svpwm(svpwm);
+    // vofa_data_run.elect_angle = svpwm->elect_angle;
+    // vofa_data_run.Udata.A = svpwm->abc_v.ua;
+    // vofa_data_run.Udata.B = svpwm->abc_v.ub;
+    // vofa_data_run.Udata.C = svpwm->abc_v.uc;
+    // vofa_data_run.uq = svpwm->qd.uq;
+    // vofa_data_run.ud = svpwm->qd.ud;
+}
+FOC_PID cur_pi_q={
+    .kp = 3.5f,
+    .ki = 300.0f,
+    ._output        = 0.0f,
+    .error          = 0.0f,
+    .last_error     = 0.0f,
+    .Ts             = 0.0001f,
+    .increment = 0.0f,
+    .integral = 0.0f,
+    .integral_limit = LIN_V * 10,
+    .increment_limit = Increment_Limit,
+    .output_max = LIN_V,
+};
+FOC_PID cur_pi_d={
+    .kp = 4.4f,
+    .ki = 500.0f,
+    ._output        = 0.0f,
+    .error          = 0.0f,
+    .last_error     = 0.0f,
+    .Ts             = 0.0001f,
+    .increment = 0.0f,
+    .integral = 0.0f,
+    .integral_limit = LIN_V * 10,
+    .increment_limit = Increment_Limit,
+    .output_max = LIN_V,
+};
+//测试状态，电压实际是电流
+
+void FOC_SVPWM_CUR_RUN(SVPWM *svpwm,float Iq) {
+    //获取当前角度
+    // float current_angle = 0.0f;
+    // static float last_valid_angle = 0.0f;
+    // uint32_t timeout = 100; // 循环超时阈值
+    // while(timeout--)
+    // {
+    //     current_angle = AS5600_GetAngleDegrees(&i2c_AS5600);
+    //     if(!isnan(current_angle)) break;
+    // }
+    // 超时仍为NaN，使用上一帧合法角度兜底，防止测速NaN
+    // if(isnan(current_angle))current_angle = last_valid_angle;
+    // else last_valid_angle = current_angle;
+    //获取当前扇区
     uint8_t N = Sector_Judgment(svpwm, &svpwm->sector);
+    //获取当前电流
+    float Ia=0,Ib=0,Ic=0;
+
+    Get_Phase_Sequence(&Ia,&Ib,&Ic,N);
+    //克拉克变换
+    float Ialpha = Ia;
+    float Ibeta = (Ib-Ic) * SQRT_3_DIV_2;
+    //帕克变换
+    float Idr  =  Ialpha * cosf(svpwm->elect_angle) + Ibeta * sinf(svpwm->elect_angle);
+    float Iqr = -Ialpha * sinf(svpwm->elect_angle) + Ibeta * cosf(svpwm->elect_angle);
+    // FOC_SPEED_FILL(Iqr);
+    // FOC_SPEED_FILL(Idr);
+    //将给定需要的值进行pi调节
+    FOC_PID_CUR(&cur_pi_q,Iq,Iqr);
+    FOC_PID_CUR(&cur_pi_d,0,Idr);
+    //输出Uq，作用于电机
+    //float Uq = cur_pi._output;
+    svpwm->qd.uq=cur_pi_q._output;
+    svpwm->qd.ud=0;
+    //反park变化获取alpha和beta
+    FOC_Svpwm_Solve(svpwm);
+    //给svpwm让电机旋转
     // 矢量时间计算
     VectorActionTime(svpwm, N, svpwm->Tpwm, LIN_V);
     Set_Svpwm(svpwm);
-    SVPWM temp = *svpwm;
+    //vofa数据传递
+    vofa_data_run.elect_angle = Iq;
+    vofa_data_run.Udata.A = svpwm->_output.ua;
+    vofa_data_run.Udata.B = svpwm->_output.ub;
+    vofa_data_run.Udata.C = svpwm->_output.uc;
+    vofa_data_run.uq = svpwm->qd.uq;
+    vofa_data_run.ud = svpwm->qd.ud;
+    vofa_data_run.iq = Iqr;
+    vofa_data_run.id = Idr;
+    vofa_data_run.Idata.A = Ia;
+    vofa_data_run.Idata.C = Ic;
+    vofa_data_run.Idata.B = Ib;
 }
-
 void SPWM_RUN(SPWM *spwm, FOC_RUN_STATE state) {
     switch (state) {
         case FOC_SPWM_OPEN_MODE:
@@ -210,10 +327,12 @@ void SPWM_RUN(SPWM *spwm, FOC_RUN_STATE state) {
 void SVPWM_RUN(SVPWM *svpwm, FOC_RUN_STATE state) {
     switch (state) {
         case FOC_SVPWM_OPEN_MODE:
-            SVPWM_TIM_RUN(svpwm,10);
+            //SVPWM_TIM_RUN(svpwm,10);
+            FOC_SVPWM_OPEN_RUN(svpwm,100);
             break;
         case FOC_SVPWM_SPEED_MODE:
-            FOC_SVPWM_SPEED_RUN(svpwm,2);
+            float speed=FOC_SVPWM_SPEED_RUN(svpwm,0);
+            FOC_SVPWM_CUR_RUN(svpwm,speed);
             break;
         case FOC_SVPWM_POSTION_MODE:
             break;

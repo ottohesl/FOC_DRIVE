@@ -28,7 +28,7 @@
 #define debug_mode  0       /**< 串口调试模式开关：1=开启（调用uart_debugger），0=关闭 */
 #define LCD         0       /**< LCD调试模式开关：1=开启（显示HAL状态到1.54寸LCD），0=关闭 */
 #define open_freertos  0    /**< FREERTOS：1=开启(互斥锁)，0=关闭 */
-#define HAVE_USB 0
+#define HAVE_USB 1
 #if HAVE_USB
 #include "usb_device.h"
 #include "usbd_cdc_if.h"

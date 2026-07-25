@@ -21,16 +21,18 @@
 #include "cmsis_os.h"
 #include "adc.h"
 #include "crc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
-#include "usb.h"
+#include "usb_device.h"
 #include "gpio.h"
 #include "app_touchgfx.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "FOC_FB.h"
 #include "LCD_1.14.h"
 #include "ottohesl.h"
 #include "ottohesl_OLED.h"
@@ -115,9 +117,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
-  MX_I2C1_Init();
   MX_I2C2_Init();
   MX_TIM1_Init();
   MX_TIM8_Init();
@@ -126,14 +128,26 @@ int main(void)
   MX_CRC_Init();
   MX_TIM4_Init();
   MX_SPI2_Init();
-  MX_USB_PCD_Init();
+  MX_TIM2_Init();
   MX_TouchGFX_Init();
   /* Call PreOsInit function */
   MX_TouchGFX_PreOSInit();
   /* USER CODE BEGIN 2 */
+  /*****************************使能DRV8323H和校准ADC***********************************/
+  HAL_GPIO_WritePin(ENABLE_GPIO_Port, ENABLE_Pin, GPIO_PIN_SET);
+  HAL_Delay(50);
+  HAL_GPIO_WritePin(CAL_GPIO_Port, CAL_Pin, GPIO_PIN_SET);
+  HAL_Delay(50);
+  HAL_GPIO_WritePin(CAL_GPIO_Port, CAL_Pin, GPIO_PIN_RESET);
+  HAL_Delay(50);
+  /*****************************开启ADC读取通道*****************************/
+  HAL_ADCEx_Calibration_Start(&hadc1,ADC_SINGLE_ENDED);
+  ADC1_DMA_InitStart();
+  /*****************************LCD初始化**************************************/
   LCD_Init();
-  HAL_TIM_Base_Start_IT(&htim4);
-  //LCD_Draw_Circle(120,58,30);
+  /*****************************开启定时器**************************************/
+  HAL_TIM_Base_Start_IT(&htim4);//TouchGFX屏幕刷新
+  HAL_TIM_Base_Start_IT(&htim2);//FOC中断执行（10kHZ）
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
@@ -156,13 +170,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-   // LCD_Draw_Circle(120,58,30);
-    // uint8_t buffer[64] = "Hello USB CDC\n";
-    // CDC_Transmit_FS(buffer, strlen((char*)buffer));
-    // if(HAL_GetTick() - tick > 3000)
-    // {
-    //   JumpToApplication();
-    // }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -187,14 +194,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI48;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
-  RCC_OscInitStruct.PLL.PLLN = 18;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
+  RCC_OscInitStruct.PLL.PLLN = 24;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV6;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -235,6 +241,7 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 extern void touchgfxSignalVSync(void);
+uint8_t foc_control_time = 0;
 /* USER CODE END 4 */
 
 /**
@@ -258,6 +265,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM4)
   {
     touchgfxSignalVSync();
+  }
+  if (htim->Instance == TIM2) {
+    foc_control_time = 1;
   }
   /* USER CODE END Callback 1 */
 }
