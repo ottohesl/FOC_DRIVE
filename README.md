@@ -16,7 +16,7 @@
 
 <img width="1314" height="824" alt="image" src="https://github.com/user-attachments/assets/a6a2322a-9d76-4a10-944d-07ea9cfba04e" />
 <img width="1332" height="822" alt="image" src="https://github.com/user-attachments/assets/b25470cb-bd2f-482a-a588-6c4a1acd75b2" />
-这次使用kicad来进行设计
+使用kicad设计PCB
 <img width="1917" height="1018" alt="image" src="https://github.com/user-attachments/assets/3e245f9a-5a89-41f8-ab8e-edec25f3e5d9" />
 
 下层板为功率驱动核心板，是整个系统的主电源输入与电机驱动执行单元，主要接收上层主控板通过FPC传输的PWM控制信号，完成电机的驱动控制，本项目采用六步换相控制方式实现电机运转驱动。  
@@ -100,7 +100,9 @@ uint8_t Sector_Judgment(SVPWM *svpwm, uint8_t *sector)
     }
     return N;
 }
+```
 **电流环、速度环**
+```
 /**
  * @brief 速度环
  * @param motor 电机结构体句柄
