@@ -19,15 +19,15 @@
 volatile uint16_t elect_offset = 0;
 inline float cosf(float x) { return arm_cos_f32(x); }
 inline float sinf(float x) { return arm_sin_f32(x); }
+
 /**
- * @brief  获取定时器pwm下的预分频器和自动重装载值
- * @param   htim 定时器句柄
- * @param   psc  预分频器
- * @param   arr  自动重装载值
+ * @brief 定时器基础常量获取（预分频器、自动重装载值）
+ * @param tim_data SVPWM句柄
+ * @param htim pwm产生定时器句柄
  */
-void Get_PSC_ARR(TIM_HandleTypeDef *htim , uint32_t *psc ,uint32_t *arr) {
-    *psc = htim->Instance->PSC ;
-    *arr = htim->Instance->ARR ;
+static void FOC_TIM_INIT(TIM_DATA *tim_data,TIM_HandleTypeDef *htim) {
+    tim_data->PSC = htim->Instance->PSC ;
+    tim_data->ARR = htim->Instance->ARR ;
 }
 /**
  * @brief  角度归一化函数
@@ -50,68 +50,36 @@ double Solve_Electrical_Angle(double angle) {
 }
 /**
  * @brief  求解电PWM的频率
- * @param  无
  * @return pwm的频率值
  */
-float Solve_PWM_Freq() {
-    uint32_t PSC,ARR;
-    Get_PSC_ARR(FOC_TIM,&PSC,&ARR);
+float Solve_PWM_Freq(TIM_DATA tim_data) {
     uint32_t tim_clk = HAL_RCC_GetPCLK1Freq();
-    uint32_t ppre1 = (RCC->CFGR >> 8) & 0x07;
-    if(ppre1 != 0) {
+    uint32_t clk_val = (RCC->CFGR >> 8) & 0x07;
+    if(clk_val != 0) {
         tim_clk *= 2;
     }
-    float pwm_freq = (float)tim_clk / ((PSC + 1) * (ARR + 1));
+    float pwm_freq = (float)tim_clk / ((tim_data.PSC + 1) * (tim_data.ARR + 1));
     return pwm_freq;
-}
-/**
- * @brief  求解电角度函数
- * @param  spwm  SPWM结构体的句柄，访问里面数据进行读写
- */
-void Set_Spwm(SPWM *spwm){
-    double ua=constrain(spwm->abc_v.ua,0.0f,LIN_V);
-    double ub=constrain(spwm->abc_v.ub,0.0f,LIN_V);
-    double uc=constrain(spwm->abc_v.uc,0.0f,LIN_V);
-    // 电压转化为占空比
-    float dc_a=constrain(ua/LIN_V,0.0f,1.0f);
-    float dc_b=constrain(ub/LIN_V,0.0f,1.0f);
-    float dc_c=constrain(uc/LIN_V,0.0f,1.0f);
-    uint32_t PSC,ARR;
-    Get_PSC_ARR(FOC_TIM,&PSC,&ARR);
-    // 设置PWM比较值
-    // OTTO_uart(&huart_debug,"%.2f,%.2f,%.2f,%d",dc_a*ARR,dc_b*ARR,dc_c*ARR,ARR);
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_1, dc_a*ARR);
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_2, dc_b*ARR);
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_3, dc_c*ARR);
 }
 /**
  * @brief  求解零偏纠正角
  * @param  spwm   SPWM结构体的句柄，访问里面数据进行读写
  */
-void Calibrate_Zero_Eangle(SPWM *spwm) {
+void Calibrate_Zero_angle(SPWM *spwm) {
     spwm->elect_angle=0;
     spwm->qd.uq=0;
     spwm->qd.ud=3;
     FOC_Spwm_Solve(spwm);
-    Set_Spwm(spwm);
+    FOC_Set_Spwm(spwm,LIN_V);
     //HAL_Delay(300);
     elect_offset=AS5600_ReadRawAngle(&i2c_AS5600);
-    //OTTO_uart(&huart_debug,"原始编码器值为：%f",elect_offset);
-    OTTO_usb_cdc("编码器角度为：%d",elect_offset);
 }
 /**************************spwm实现*********************************/
-void Init_SVPWM(SVPWM *svpwm) {
-    uint32_t PSC,ARR;
-    Get_PSC_ARR(FOC_TIM,&PSC,&ARR);
-    svpwm->elect_angle=0.0f;
-    svpwm->qd.uq=0.0f;
-    svpwm->qd.ud=0.0f;
-    svpwm->Tpwm = ARR + 1;
-    svpwm->K = 0.95f; // 过调制系数初始化
-    svpwm->ab.alpha = 0.0f;
-    svpwm->ab.beta = 0.0f;
-    svpwm->svpwm_val1=0.0f;
-    svpwm->svpwm_val2=0.0f;
+void FOC_SPWM_Init(SPWM *spwm) {
+    FOC_TIM_INIT(&spwm->tim_data,FOC_TIM);
+    spwm->elect_angle=0.0f;
+    spwm->qd.uq=0.0f;
+    spwm->qd.ud=0.0f;
 }
 /**
  * @brief  求解SPWM的相关系数
@@ -122,11 +90,46 @@ void FOC_Spwm_Solve(SPWM *spwm) {
     double ualp = -spwm->qd.uq * sin(spwm->elect_angle) + spwm->qd.ud * cos(spwm->elect_angle);
     double ubet = spwm->qd.uq * cos(spwm->elect_angle) + spwm->qd.ud * sin(spwm->elect_angle);
     //克拉克逆变换
-    spwm->abc_v.ua=ualp+LIMIT_V/2;
-    spwm->abc_v.ub=(SQRT_3*ubet-ualp)/2+LIMIT_V/2;
-    spwm->abc_v.uc=(-ualp-SQRT_3*ubet)/2+LIMIT_V/2;
+    spwm->vol_abc.ua=ualp;
+    spwm->vol_abc.ub=(SQRT_3*ubet-ualp)/2;
+    spwm->vol_abc.uc=(-ualp-SQRT_3*ubet)/2;
+}
+/**
+ * @brief  求解电角度函数
+ * @param  spwm  SPWM结构体的句柄，访问里面数据进行读写
+ */
+void FOC_Set_Spwm(SPWM *spwm,float bus_voltage){
+    //抬升电压
+    spwm->vol_abc.ua = spwm->vol_abc.ua + bus_voltage/2;
+    spwm->vol_abc.ub = spwm->vol_abc.ub + bus_voltage/2;
+    spwm->vol_abc.uc = spwm->vol_abc.uc + bus_voltage/2;
+    double ua=constrain(spwm->vol_abc.ua,0.0f,bus_voltage);
+    double ub=constrain(spwm->vol_abc.ub,0.0f,bus_voltage);
+    double uc=constrain(spwm->vol_abc.uc,0.0f,bus_voltage);
+    // 电压转化为占空比
+    float dc_a=constrain(ua/bus_voltage,0.0f,1.0f);
+    float dc_b=constrain(ub/bus_voltage,0.0f,1.0f);
+    float dc_c=constrain(uc/bus_voltage,0.0f,1.0f);
+    // 设置PWM比较值
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_1, dc_a * spwm->tim_data.ARR);
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_2, dc_b * spwm->tim_data.ARR);
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_3, dc_c * spwm->tim_data.ARR);
 }
 /**************************svpwm实现*********************************/
+void FOC_SVPWM_Init(SVPWM *svpwm) {
+    FOC_TIM_INIT(&svpwm->tim_data,FOC_TIM);
+    svpwm->elect_angle=0.0f;
+    svpwm->qd.uq=0.0f;
+    svpwm->qd.ud=0.0f;
+    svpwm->iqd.iq=0.0f;
+    svpwm->iqd.id=0.0f;
+    svpwm->tim_pwm = svpwm->tim_data.ARR + 1;
+    svpwm->tim_scale = 0.95f; // 过调制系数初始化（0.92-1，越大零向量越小）
+    svpwm->ab.alpha = 0.0f;
+    svpwm->ab.beta = 0.0f;
+    svpwm->svpwm_val1=0.0f;
+    svpwm->svpwm_val2=0.0f;
+}
 /**
  * @brief 扇区判断
  * @param svpwm  SVPWM控制结构体
@@ -163,14 +166,12 @@ uint8_t Sector_Judgment(SVPWM *svpwm, uint8_t *sector)
  * @brief 矢量作用时间计算
  * @param foc_pwm SVPWM控制结构体
  * @param sector 扇区
- * @param alphabeta αβ轴电压
- * @param Tpwm PWM周期(计数值)
- * @param Udc 母线电压
+ * @param bus_voltage 母线电压
  */
-void VectorActionTime(SVPWM *foc_pwm, uint8_t sector, uint32_t Tpwm, float Udc)
+void VectorActionTime(SVPWM *foc_pwm, uint8_t sector,float bus_voltage)
 {
-    Udc = Udc * 1.5f;
-    float K = (float)Tpwm * SQRT_3 / Udc;
+    bus_voltage = bus_voltage * 1.5f;
+    float K = (float)foc_pwm->tim_pwm * SQRT_3 / bus_voltage;
 
     float X = K * foc_pwm->ab.beta;
     float Y = K * (foc_pwm->svpwm_val1 + foc_pwm->svpwm_val2);
@@ -191,14 +192,14 @@ void VectorActionTime(SVPWM *foc_pwm, uint8_t sector, uint32_t Tpwm, float Udc)
     }
 
     // 过调制处理
-    if(T4 + T6 > (Tpwm * foc_pwm->K)){
-        float ratio = (Tpwm * foc_pwm->K) / (T4 + T6);
+    if(T4 + T6 > ((float)foc_pwm->tim_pwm * foc_pwm->tim_scale)){
+        float ratio = ((float)foc_pwm->tim_pwm * foc_pwm->tim_scale) / (T4 + T6);
         T4 *= ratio;
         T6 *= ratio;
     }
 
     // 计算各相作用时间
-    Ta = (Tpwm - T4 - T6) / 4;
+    Ta = (foc_pwm->tim_pwm - T4 - T6) / 4;
     Tb = Ta + T4 / 2;
     Tc = Tb + T6 / 2;
 
@@ -211,22 +212,15 @@ void VectorActionTime(SVPWM *foc_pwm, uint8_t sector, uint32_t Tpwm, float Udc)
         case 5: T1 = Tc; T2 = Ta; T3 = Tb; break;
         case 6: T1 = Tb; T2 = Tc; T3 = Ta; break;
     }
-
-    // 保存各相时间
-    foc_pwm->T_abc.ua = T1;
-    foc_pwm->T_abc.ub = T2;
-    foc_pwm->T_abc.uc = T3;
-
     // 死区补偿(根据实际硬件调整)
-    float deadtime_comp = 0;
+    uint32_t deadtime_comp = 0;
     T1 += deadtime_comp;
     T2 += deadtime_comp;
     T3 += deadtime_comp;
-
-    // 计算占空比
-    foc_pwm->_output.ua = (float)T1 / (Tpwm/2.0f) * LIN_V;
-    foc_pwm->_output.ub = (float)T2 / (Tpwm/2.0f) * LIN_V;
-    foc_pwm->_output.uc = (float)T3 / (Tpwm/2.0f) * LIN_V;
+    // 保存各相时间
+    foc_pwm->tim_abc.ua = T1;
+    foc_pwm->tim_abc.ub = T2;
+    foc_pwm->tim_abc.uc = T3;
 }
 /**
  * @brief 帕克逆变换
@@ -237,22 +231,20 @@ void FOC_Svpwm_Solve(SVPWM *svpwm) {
     svpwm->ab.alpha = -svpwm->qd.uq * sin(svpwm->elect_angle) + svpwm->qd.ud * cos(svpwm->elect_angle);
     svpwm->ab.beta = svpwm->qd.uq * cos(svpwm->elect_angle) + svpwm->qd.ud * sin(svpwm->elect_angle);
 }
-void Set_Svpwm(SVPWM *svpwm){
-    double ua=constrain((svpwm->_output.ua),0.0f,LIN_V);
-    double ub=constrain((svpwm->_output.ub),0.0f,LIN_V);
-    double uc=constrain((svpwm->_output.uc),0.0f,LIN_V);
-
+void FOC_Set_Svpwm(SVPWM *svpwm,float bus_voltage){
+    // 计算占空比
+    svpwm->out_abc.ua = (float)svpwm->tim_abc.ua / (svpwm->tim_pwm/2.0f) * bus_voltage;
+    svpwm->out_abc.ub = (float)svpwm->tim_abc.ub / (svpwm->tim_pwm/2.0f) * bus_voltage;
+    svpwm->out_abc.uc = (float)svpwm->tim_abc.uc / (svpwm->tim_pwm/2.0f) * bus_voltage;
+    double ua=constrain((svpwm->out_abc.ua),0.0f,bus_voltage);
+    double ub=constrain((svpwm->out_abc.ub),0.0f,bus_voltage);
+    double uc=constrain((svpwm->out_abc.uc),0.0f,bus_voltage);
     // 电压转化为占空比
-    float dc_a=constrain(ua/LIN_V,0.0f,1.0f);
-    float dc_b=constrain(ub/LIN_V,0.0f,1.0f);
-    float dc_c=constrain(uc/LIN_V,0.0f,1.0f);
-    uint32_t PSC,ARR;
-    Get_PSC_ARR(FOC_TIM,&PSC,&ARR);
+    float dc_a=constrain(ua/bus_voltage,0.0f,1.0f);
+    float dc_b=constrain(ub/bus_voltage,0.0f,1.0f);
+    float dc_c=constrain(uc/bus_voltage,0.0f,1.0f);
     // 设置PWM比较值
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_1, dc_a*ARR);
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_2, dc_b*ARR);
-    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_3, dc_c*ARR);
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_1, dc_a * svpwm->tim_data.ARR);
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_2, dc_b * svpwm->tim_data.ARR);
+    __HAL_TIM_SET_COMPARE(FOC_TIM, TIM_CHANNEL_3, dc_c * svpwm->tim_data.ARR);
 }
-
-/**************************BSP层接口*********************************/
-

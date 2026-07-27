@@ -34,6 +34,7 @@
 /* USER CODE BEGIN Includes */
 #include "FOC_FB.h"
 #include "LCD_1.14.h"
+#include "Main_Freertos.h"
 #include "ottohesl.h"
 #include "ottohesl_OLED.h"
 /* USER CODE END Includes */
@@ -129,6 +130,7 @@ int main(void)
   MX_TIM4_Init();
   MX_SPI2_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
   MX_TouchGFX_Init();
   /* Call PreOsInit function */
   MX_TouchGFX_PreOSInit();
@@ -148,6 +150,7 @@ int main(void)
   /*****************************开启定时器**************************************/
   HAL_TIM_Base_Start_IT(&htim4);//TouchGFX屏幕刷新
   HAL_TIM_Base_Start_IT(&htim2);//FOC中断执行（10kHZ）
+  HAL_TIM_Base_Start_IT(&htim3);//开启as5600的速度计算中断
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
@@ -264,10 +267,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM4)
   {
-    touchgfxSignalVSync();
+    touchgfxSignalVSync();    //启动Touchgfx页面更新（50hz）
   }
   if (htim->Instance == TIM2) {
     foc_control_time = 1;
+    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    // if(FocTask_Control != NULL)
+    // {
+    //   vTaskNotifyGiveFromISR(FocTask_Control, &xHigherPriorityTaskWoken); //将当前任务定义为就绪态
+    // }
+    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);//立即触发任务调度，从优先级更高的任务直接运行（无论是否还在其他低优先级任务运行）
+  }
+  //计算as5600编码器得到的角度以得出实时速度
+  if (htim->Instance == TIM3) {
+    Enc_data.tim_enc_data.calc_flag =1;         //计算标志位置1
+    Enc_data.tim_enc_data.tim_index = Enc_data.Enc_Index;     //将缓冲区的索引值传入，索引代表的数字就是当前角度
   }
   /* USER CODE END Callback 1 */
 }

@@ -4,36 +4,79 @@
 
 #include "FOC_Math.h"
 #include "ottohesl.h"
+static void PID_Speed_Init(INC_PID *inc) {
+    inc->kp = 0.18f;
+    inc->ki = 50.0f;
+    inc->kd = 0.002f;
+    inc->error = 0.0f;
+    inc->last_error = 0.0f;
+    inc->prev_error = 0.0f;
+    inc->increment = 0.0f;
+    inc->increment_limit = Increment_Limit;
+    inc->Ts = 0.0001f;
+    inc->output_max = LIN_V;
+    inc->_output = 0.0f;
+}
+static void PID_Iq_Init(POS_PID *pos) {
+    pos->kp = 3.5f;
+    pos->ki = 300.0f;
+    pos->kd = 0.0f;
+    pos->error = 0.0f;
+    pos->last_error = 0.0f;
+    pos->integral = 0.0f;
+    pos->integral_limit = Increment_Limit;
+    pos->Ts = 0.0001f;
+    pos->output_max = LIN_V;
+    pos->_output = 0.0f;
+}
+static void PID_Id_Init(POS_PID *pos) {
+    pos->kp = 4.4f;
+    pos->ki = 500.0f;
+    pos->kd = 0.0f;
+    pos->error = 0.0f;
+    pos->last_error = 0.0f;
+    pos->integral = 0.0f;
+    pos->integral_limit = Increment_Limit;
+    pos->Ts = 0.0001f;
+    pos->output_max = LIN_V;
+    pos->_output = 0.0f;
+}
+static void PID_POS_Init(POS_PID *pos) {
+    pos->kp = 0.0f;
+    pos->ki = 0.0f;
+    pos->kd = 0.0f;
+    pos->error = 0.0f;
+    pos->last_error = 0.0f;
+    pos->integral = 0.0f;
+    pos->integral_limit = LIN_V * 10.0f;
+    pos->Ts = 0.0001f;
+    pos->output_max = LIN_V;
+    pos->_output = 0.0f;
+}
 /**
  * @brief PID初始化
  * @param foc_pid
- * @param pid_freq PID执行频率
  */
-void PID_Init(FOC_PID *foc_pid, float pid_freq)
+void FOC_PID_Init(FOC_PID *foc_pid)
 {
-    foc_pid->kp = 0.2f;
-    foc_pid->ki = 10.0f;
-    foc_pid->kd = 0.0f;
-    foc_pid->_output        = 0.0f;
-    foc_pid->error          = 0.0f;
-    foc_pid->last_error     = 0.0f;
-    foc_pid->prev_error     = 0.0f;
-    foc_pid->sum_error      = 0.0f;
-    foc_pid->Ts             = 1.0f/pid_freq;
+    PID_Speed_Init(&foc_pid->spe_pid);
+    PID_Iq_Init(&foc_pid->iq_pid);
+    PID_Id_Init(&foc_pid->id_pid);
+    PID_POS_Init(&foc_pid->pos_pid);
 }
 /**
- * @brief  增量式速度环pid
- * @param S               FOC_PID结构体的速度指针
- * @param target_speed    目标速度
- * @param current_speed   当前速度
+ * @brief 增量式速度环pid，可用于速度环
+ * @param S   增量式结构体的速度指针
+ * @param target_val    目标速度
+ * @param current_val   当前速度
  */
-void FOC_PID_SPEED(FOC_PID* S,float target_speed,float current_speed)
+void FOC_INC_PID(INC_PID* S,float target_val,float current_val)
 {
-    S->error = target_speed-current_speed;
+    S->error = target_val-current_val;
     float P = S->kp*(S->error-S->last_error);
     float I = S->ki*S->error*S->Ts;
     float D = S->kd*(S->error-2*S->last_error+S->prev_error)*S->Ts;
-    float increment = P+I+D;
+    float increment = P + I + D;
     //增量限幅
     if (increment > S->increment_limit) increment = S->increment_limit;
     else if(increment < -S->increment_limit) increment = -S->increment_limit;
@@ -45,15 +88,22 @@ void FOC_PID_SPEED(FOC_PID* S,float target_speed,float current_speed)
     else if (S->_output < -S->output_max) S->_output = -S->output_max;
 }
 
-void FOC_PID_CUR(FOC_PID *C, float target_cur, float current_cur) {
-    if (current_cur < 0)    C->error = current_cur-target_cur;
+/**
+ * @brief 位置式pid，可用于电流环、位置环
+ * @param C 位置式pid结构体句柄
+ * @param target_cur 目标值
+ * @param current_cur 当前值
+ */
+void FOC_POS_PID(POS_PID *C, float target_cur, float current_cur)
+{
     C->error = target_cur-current_cur;
     C->integral += C->error ;  //积分累加项
     if(C->integral > C->integral_limit) C->integral = C->integral_limit;
     if(C->integral < -C->integral_limit) C->integral = -C->integral_limit;
     float P = C->kp * C->error;
     float I = C->ki * C->integral * C->Ts; //积分累加
-    float output = P + I;
+    float D = C->kd * (C->error-C->last_error )* C->Ts;
+    float output = P + I + D;
     if (output > C->output_max) output = C->output_max;
     else if (output < -C->output_max) output = -C->output_max;
     C->last_error = C->error;

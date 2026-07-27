@@ -1,8 +1,4 @@
 #include "UI_Component.h"
-#include <string.h>
-#include "as5600.h"
-#include "FOC_FB.h"
-#include "i2c.h"
 MUY motor1;
 MUY motor2;
 /**
@@ -23,15 +19,15 @@ void UI_RUN(MUY *muy1, MUY *muy2) {
  * @note 后续将每个电机的电压、电流、速度、模式直接进行赋值
  */
 void UI_Update(void) {
-    motor1.Voltage = Get_Bus_Voltage();
-    motor1.ui.real_Angle=AS5600_GetAngleDegrees(&i2c_AS5600);
-    motor1.ui.real_Speed=AS5600_CalcSpeed_MovAvg(motor1.ui.real_Angle);
-    motor1.ui.real_Cur= 0.1f;
+    motor1.Voltage = MOTOR.FOC_CUR_PARAM.Bus_Voltage;
+    motor1.ui.real_Angle=MOTOR.FOC_ENC_DATA.Enc_angle;
+    motor1.ui.real_Speed=MOTOR.FOC_ENC_DATA.Enc_speed;
+    motor1.ui.real_Cur= MOTOR.FOC_SVPWM.iqd.iq;
     strcpy(motor1.ui.real_Mode, "pos");
     motor2.Voltage = 24.2f;
-    motor2.ui.real_Angle=AS5600_GetAngleDegrees(&i2c_AS5600);
-    motor2.ui.real_Speed=AS5600_CalcSpeed_MovAvg(motor2.ui.real_Angle);
-    motor2.ui.real_Cur= 0.2f;
+    motor2.ui.real_Angle=MOTOR.FOC_ENC_DATA.Enc_angle;
+    motor2.ui.real_Speed=MOTOR.FOC_ENC_DATA.Enc_speed;
+    motor2.ui.real_Cur= MOTOR.FOC_SVPWM.iqd.iq;
     strcpy(motor2.ui.real_Mode, "spe");
     UI_RUN(&motor1,&motor2);
 }

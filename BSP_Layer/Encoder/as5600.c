@@ -1,10 +1,28 @@
 #include "as5600.h"
 #include<stdio.h>
 #include <tgmath.h>
+
+#include "i2c.h"
+#include "Filter_Tool/Filter_Tool.h"
 #define dirr_num 5//滤波大小
 int full_ration=0;//圈数
 float angle_points=0;//锚点
 float speeds=0;
+AS5600_Enc_DATA Enc_data = {
+	.Enc_angle = 0,
+	.Enc_speed = 0,
+	.Enc_angle_buf = {0},
+	.Enc_Raw_buf = {0},
+	.raw_data = 0,
+	.Enc_Index = 0,
+	.Enc_calc_speed.cal_last_angle = 0,
+	.Enc_calc_speed.cal_now_angle = 0,
+	.Enc_calc_speed.last_tick = 0,
+	.Enc_calc_speed.tick = 1/1000,				//时钟中断频率-10kHZ
+	.Enc_calc_speed = 0,
+	.tim_enc_data.tim_index = 0,
+	.tim_enc_data.calc_flag = 0
+};
 /**
   * @brief  读取原始角度值（0-4095）
   * @param  hi2c: I2C句柄指针
@@ -21,8 +39,7 @@ uint16_t AS5600_ReadRawAngle(I2C_HandleTypeDef *hi2c)
                              AS5600_RAW_ANG_H,
                              I2C_MEMADD_SIZE_8BIT,
                              angle_data,
-                             2,
-                             100);  // 超时100ms
+                             2,100);  // 超时100ms
 
     if(status != HAL_OK) {
         return AS5600_ERROR;
@@ -31,7 +48,26 @@ uint16_t AS5600_ReadRawAngle(I2C_HandleTypeDef *hi2c)
     // 组合高低字节数据
     return ((uint16_t)angle_data[0] << 8) | angle_data[1];
 }
+/**
+  * @brief  读取原始角度值（0-4095）
+  * @param  hi2c: I2C句柄指针
+  * @retval 角度值（0-4095）或AS5600_ERROR
+  */
+void AS5600_StartReadRawAngle(I2C_HandleTypeDef *hi2c)
+{
+	if (hi2c->State == HAL_I2C_STATE_READY) {
+		HAL_I2C_Mem_Read_DMA(hi2c,AS5600_I2C_ADDR << 1,AS5600_RAW_ANG_H,I2C_MEMADD_SIZE_8BIT,Enc_data.Enc_Raw_buf,2);
+	}
 
+}
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+	if (hi2c == &i2c_AS5600) {
+		//dma传输完成触发回调，将数据存入缓冲区
+		float enc_raw_angle = ((uint16_t)Enc_data.Enc_Raw_buf[0] << 8) | Enc_data.Enc_Raw_buf[1];
+		Enc_data.Enc_angle_buf[Enc_data.Enc_Index] = (enc_raw_angle * 360.0f) / 4096.0f;	//将当前角度传入（0-360）
+		Enc_data.Enc_Index = (Enc_data.Enc_Index + 1) % AS5600_ANGLE_BUFF;	//定义环形缓冲区
+	}
+}
 /**
   * @brief  获取角度（0-360度）
   * @param  hi2c: I2C句柄指针
@@ -124,46 +160,6 @@ float AS5600_Get_Turns(I2C_HandleTypeDef *hi2c){
 
 	return val*360+actual_angle;
 }
-//获取角速度
-float AS5600_Get_Speed(I2C_HandleTypeDef *hi2c){
-	    // 获取当前角度（含圈数）
-	    float now_angle = AS5600_Get_Turns(hi2c);
-		float Ts = 0.01f;
-	    // 静态变量保持用户指定的变量名
-	    static float last_angle = 0;       // 上一次角度（含圈数）
-	    static uint32_t last_now = 0;         // 上一次时间（ms）
-	    static uint8_t first_call = 1;     // 首次调用标志
-
-	    // 处理首次调用：初始化并返回0
-	    if (first_call) {
-	        last_angle = now_angle;
-	        last_now = HAL_GetTick();
-	        first_call = 0;
-	        return 0; // 首次无速度
-	    }
-
-	    // 计算时间间隔（处理HAL_GetTick()溢出）
-	    uint32_t now = HAL_GetTick();
-	    float dt = 0;
-	    if (now >= last_now) {
-	        dt = (now - last_now) * 1e-3f; // 正常时间差
-	    } else {
-	        dt = (UINT32_MAX - last_now + now + 1) * 1e-3f; // 溢出处理
-	    }
-	    // 限制时间间隔在合理范围
-	    if (dt < 0.001f || dt > Ts * 10) dt = 8*Ts; // 最小1ms.dt大概为0.088s
-
-	    // 计算速度（角度/秒）
-	    float speed = (now_angle - last_angle) / dt;
-	    float RPS = speed / 360.0f; // 转换为RPS
-
-	    // 更新状态变量（用户指定的变量名）
-	    last_angle = now_angle;
-	    last_now = now;
-	    speeds = RPS; // 保存全局速度变量（若有需要）
-
-	    return RPS;
-}
 /**
  * @brief  AS5600机械转速计算（RPS），滑动平均滤波+过零+限幅
  * @param  mech_angle_deg  当前机械角度（度，0~360）
@@ -234,4 +230,49 @@ float AS5600_CalcSpeed_MovAvg(float mech_angle_deg)
 
 	return filtered_rps;
 }
+FILTER_TOOL Enc_speed={
+	.fit_allow_max = 1000,		//最大转速超过无效
+	.fit_index = 0,
+	.raw_data = 0,
+	.filter_size = 5,			//均值滤波大小
+	.filtered_data = 0,
+	.fit_last_data = 0
+};
+
+/**
+ * @brief 获取电机的速度
+ * @param calc 编码器数据结构体
+ * @return 当前速度（°/s）
+ */
+float AS5600_Get_Speed(AS5600_Enc_DATA *calc) {
+	//获取最新缓冲区索引
+	uint8_t calc_Index = Enc_data.tim_enc_data.tim_index;
+	//将最新数据取出
+	calc->Enc_calc_speed.cal_now_angle = calc->Enc_angle_buf[calc_Index];
+	//与上一次得到的角度作差
+	float calc_angle_deg = calc->Enc_calc_speed.cal_now_angle - calc->Enc_calc_speed.cal_last_angle;
+	//角度归一化
+	if (calc_angle_deg>180.0f)  calc_angle_deg -= 360.0f;
+	if (calc_angle_deg<-180.0f)  calc_angle_deg += 360.0f;
+	//依据单位时间得到速度（rps、rpm）
+	calc->Enc_speed = calc_angle_deg / calc->Enc_calc_speed.tick;
+	//这次角度赋给上一次角度
+	calc->Enc_calc_speed.cal_last_angle = calc->Enc_calc_speed.cal_now_angle;
+	//滤波
+	Enc_speed.raw_data = calc->Enc_speed;
+	FILTER_Sliding_Mean(&Enc_speed);
+	calc->Enc_speed = Enc_speed.filtered_data;
+	return calc->Enc_speed;
+}
+void FOC_ENC_Update(AS5600_Enc_DATA *calc) {
+	AS5600_StartReadRawAngle(&i2c_AS5600);
+	calc = &Enc_data;			//传入as5600文件已定义的结构体
+	//根据tim3的频率对齐
+	if (calc->tim_enc_data.calc_flag) {
+		AS5600_Get_Speed(calc);
+		calc->tim_enc_data.calc_flag = 0;
+	}
+}
+
+
 

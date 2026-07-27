@@ -31,14 +31,19 @@ enum FILTER_MODE{
     NOMINAL_MODE = 0,     //普通滑动均值滤波模式
     CALIBRA_MODE = 1,     //初始化校准模式calibration
 };  //滤波模式
-
-
-void Calc_Cur();
+typedef struct {
+    float Ia;               //a相电流
+    float Ib;               //b相电流
+    float Ic;               //c相电流
+    float Bus_Voltage;          //母线电压
+}FOC_FB;
+void FOC_Calc_Cur();
 void ADC1_DMA_InitStart();
 float Get_Bus_Voltage();
 void Get_CUR_ABC(float *CUR);
 void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic,uint8_t N);
 uint8_t CUR_filter(const float *CUR, float *Filter_Result,enum FILTER_MODE mode);
+void FOC_FB_Update(FOC_FB *fb);
 extern uint8_t adc_data_ready;
 extern  uint16_t adc_dma_buf[ADC1_TOTAL_CH];
 #endif //FOC_FB_H

@@ -16,17 +16,15 @@
   *2025/12/11           v1.0       封装串口、dma串口发送的集成函数，并配置调试模式
   *2025/12/23           v1.1
   *2026/3/22            v1.2       配置USB的CDC虚拟串口功能，可不用串口只需连接USB线即可查看数据
+  *2026/7/26            v1.3       可直接匹配上位机FireWater和JustFloat模式
  */
 #include "ottohesl.h"
-#include "main.h"
 
 /**
  * @defgroup UART_DEBUG_CONFIG 串口调试配置宏
  * @brief 串口/LCD调试模式开关，编译阶段通过条件编译裁剪功能
  * @{
  */
-#define debug_mode  0       /**< 串口调试模式开关：1=开启（调用uart_debugger），0=关闭 */
-#define LCD         0       /**< LCD调试模式开关：1=开启（显示HAL状态到1.54寸LCD），0=关闭 */
 #define open_freertos  0    /**< FREERTOS：1=开启(互斥锁)，0=关闭 */
 #define HAVE_USB 1
 #if HAVE_USB
@@ -46,7 +44,7 @@
   *         3. 缓存溢出时发送"length error\n"错误提示，超时时间100ms
   *         4. debug_mode=1时，调用uart_debugger输出发送状态
   */
-void OTTO_uart(UART_HandleTypeDef *huart, const char *fmt, ...) {
+void OTTO_Uart_FireWater(UART_HandleTypeDef *huart, const char *fmt, ...) {
 #if open_freertos
     osMutexAcquire(OTTO_Uart_MutexHandle, osWaitForever);
 #endif
@@ -73,14 +71,11 @@ void OTTO_uart(UART_HandleTypeDef *huart, const char *fmt, ...) {
     }
 
     /* 4. 轮询模式发送格式化数据 */
-    HAL_StatusTypeDef uart_tx_status = HAL_UART_Transmit(huart, (uint8_t *) message, len, 100);
+    HAL_UART_Transmit(huart, (uint8_t *) message, len, 100);
 #if open_freertos
     osMutexRelease(OTTO_Uart_MutexHandle);
 #endif
     /* 5. 调试模式：输出发送状态（串口/LCD） */
-#if debug_mode
-    uart_debugger(huart, uart_tx_status);
-#endif
 }
 
 /**
@@ -103,7 +98,7 @@ void OTTO_uart(UART_HandleTypeDef *huart, const char *fmt, ...) {
   *         2. debug_mode=1时，调用uart_debugger输出DMA发送状态
   *         3. 缓存溢出时仍使用轮询模式发送错误提示
   */
-void OTTO_uart_dma(UART_HandleTypeDef *huart, const char *fmt, ...) {
+void OTTO_Uart_FireWater_DMA(UART_HandleTypeDef *huart, const char *fmt, ...) {
     /* 静态缓存区：映射到SRAM2的.ram段，规避H7 DMA地址限制 */
     static char message[OTTOHESL_UART_BUFFER] __attribute__((section(".ram")));
     va_list args;            /* 可变参数列表 */
@@ -127,80 +122,70 @@ void OTTO_uart_dma(UART_HandleTypeDef *huart, const char *fmt, ...) {
     }
 
     /* 4. DMA模式发送格式化数据（非阻塞） */
-    HAL_StatusTypeDef uart_tx_status = HAL_UART_Transmit_DMA(huart, (uint8_t *) message, len);
+    HAL_UART_Transmit_DMA(huart, (uint8_t *) message, len);
+}
+/**
+ * @brief VOFA+ JustFloat 二进制协议发送（阻塞）
+ * @param huart 串口句柄
+ * @param data 浮点数组首地址
+ * @param ch_num 有效通道数量
+ */
+void OTTO_Uart_JustFloat(UART_HandleTypeDef *huart, float *data, uint8_t ch_num)
+{
+#if open_freertos
+    osMutexAcquire(OTTO_Uart_MutexHandle, osWaitForever);
+#endif
+    uint8_t tx_buf[OTTOHESL_UART_BUFFER];
+    uint32_t tail = 0x7F800000U;
+    uint32_t total_len = ch_num * sizeof(float);
+    //拷贝通道数据
+    memcpy(tx_buf, data, total_len);
+    //追加帧尾
+    memcpy(tx_buf + total_len, &tail, sizeof(tail));
+    total_len += sizeof(tail);
 
-    /* 5. 调试模式：输出发送状态 */
-#if debug_mode
-    uart_debugger(huart, uart_tx_status);
+    HAL_UART_Transmit(huart, tx_buf, total_len, 100);
+#if open_freertos
+    osMutexRelease(OTTO_Uart_MutexHandle);
 #endif
 }
 
 /**
-  * @brief  串口发送状态调试函数（串口+LCD双端提示）
-  * @param  huart: 串口句柄指针（用于发送状态提示）
-  * @param  status: HAL库串口发送返回状态（HAL_OK/HAL_ERROR等）
-  * @retval 无
-  * @note   1. 仅debug_mode=1时会被调用，关闭后代码不参与编译
-  *         2. LCD=1时，在1.54寸LCD上显示状态（红色字体，24号中文字体）
-  *         3. 串口输出状态字符串（OK/ERROR/BUSY/TIMEOUT），LCD按行显示
-  */
-void uart_debugger(UART_HandleTypeDef *huart, HAL_StatusTypeDef status) {
-#if LCD
-    /* LCD调试模式：初始化字体/颜色/清屏 */
-    LCD_SetTextFont(&CH_Font24);    /* 设置24号中文字体 */
-    LCD_SetColor(LIGHT_RED);        /* 设置字体颜色：亮红 */
-    static const uint16_t font_h = 24; /* 字体高度，用于计算LCD显示行间距 */
-    LCD_Clear();                    /* 清屏，避免重叠显示 */
+ * @brief 串口 JustFloat 二进制协议发送（DMA非阻塞）
+ * @param huart 串口句柄
+ * @param data 浮点数组首地址
+ * @param ch_num 有效通道数量
+ * @attention 调用前保证UART空闲，静态缓冲区注意并发
+ */
+void OTTO_Uart_JustFloat_DMA(UART_HandleTypeDef *huart, float *data, uint8_t ch_num)
+{
+#if open_freertos
+    osMutexAcquire(OTTO_Uart_MutexHandle, osWaitForever);
 #endif
+    static uint8_t tx_buf[OTTOHESL_UART_BUFFER] __attribute__((section(".ram")));
+    uint32_t tail = 0x7F800000U;
+    uint32_t total_len = ch_num * sizeof(float);
 
-    /* 根据HAL状态分支处理 */
-    switch (status) {
-        case HAL_OK:
-            /* 串口输出OK */
-            HAL_UART_Transmit(huart, (uint8_t *)"OK\n", strlen("OK\n"), 100);
-#if LCD
-            /* LCD第0行显示HAL_OK */
-            LCD_DisplayText(10, font_h * 0, "HAL_OK");
+    if(huart->gState != HAL_UART_STATE_READY)
+    {
+#if open_freertos
+        osMutexRelease(OTTO_Uart_MutexHandle);
 #endif
-            break;
-
-        case HAL_ERROR:
-            /* 串口输出ERROR */
-            HAL_UART_Transmit(huart, (uint8_t *)"ERROR\n", strlen("ERROR\n"), 100);
-#if LCD
-            /* LCD第1行显示HAL_ERROR */
-            LCD_DisplayText(10, font_h * 1, "HAL_ERROR");
-#endif
-            break;
-
-        case HAL_BUSY:
-            /* 串口输出BUSY */
-            HAL_UART_Transmit(huart, (uint8_t *)"BUSY\n", strlen("BUSY\n"), 100);
-#if LCD
-            /* LCD第2行显示HAL_BUSY */
-            LCD_DisplayText(10, font_h * 2, "HAL_BUSY");
-#endif
-            break;
-
-        case HAL_TIMEOUT:
-            /* 串口输出TIMEOUT */
-            HAL_UART_Transmit(huart, (uint8_t *)"TIMEOUT\n", strlen("TIMEOUT\n"), 100);
-#if LCD
-            /* LCD第3行显示HAL_TIMEOUT */
-            LCD_DisplayText(10, font_h * 3, "HAL_TIMEOUT");
-#endif
-            break;
-
-        default:
-            /* 未知状态（预留扩展） */
-            HAL_UART_Transmit(huart, (uint8_t *)"UNKNOWN\n", strlen("UNKNOWN\n"), 100);
-#if LCD
-            LCD_DisplayText(10, font_h * 4, "UNKNOWN");
-#endif
-            break;
+        return; //DMA忙，直接放弃本次发送，防止错乱
     }
 
+    memcpy(tx_buf, data, total_len);
+    memcpy(tx_buf + total_len, &tail, sizeof(tail));
+    total_len += sizeof(tail);
+
+    HAL_UART_Transmit_DMA(huart, tx_buf, total_len);
+#if open_freertos
+    osMutexRelease(OTTO_Uart_MutexHandle);
+#endif
 }
+
+
+
 #if HAVE_USB
 /**
   * @brief  USB CDC 虚拟串口格式化发送函数（阻塞模式）
@@ -210,7 +195,7 @@ void uart_debugger(UART_HandleTypeDef *huart, HAL_StatusTypeDef status) {
   * @attention 必须在cubemx下启用USB，以及启用USB_DEVICE的CDC虚拟串口
   * @note   自动添加换行符，用法和printf完全一致
   */
-void OTTO_usb_cdc(const char *fmt, ...) {
+void OTTO_USB_CDC_FireWater(const char *fmt, ...) {
     static char message[OTTOHESL_UART_BUFFER];
     va_list args;
 
@@ -238,13 +223,21 @@ void OTTO_usb_cdc(const char *fmt, ...) {
 /**
   * @brief  USB CDC 原始字符串发送（不带格式化）
   * @param  data: 字符串指针
+  * @param ch_num 通道数
   * @retval 无
   */
-void OTTO_usb_cdc_send(uint8_t *data) {
-    uint16_t len = strlen((char *)data);
-    CDC_Transmit_FS(data, len);
+void OTTO_USB_CDC_JustFloat(float *data, uint8_t ch_num)
+{
+    static uint8_t tx_buf[OTTOHESL_UART_BUFFER];
+    uint32_t tail = 0x7F800000U;
+    uint32_t total_len = ch_num * sizeof(float);
+    memcpy(tx_buf, data, total_len);
+    memcpy(tx_buf + total_len, &tail, sizeof(tail));
+    total_len += sizeof(tail);
+    CDC_Transmit_FS(tx_buf, total_len);
 }
 #endif
+
 
 
 

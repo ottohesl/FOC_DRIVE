@@ -55,6 +55,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middle_Layer/UI/UI_Component.c
         BSP_Layer/FOC/FOC_FB.c
         BSP_Layer/FOC/FOC_FB.h
+        Middle_Layer/Filter_Tool/Filter_Tool.c
+        Middle_Layer/Filter_Tool/Filter_Tool.h
+        Middle_Layer/LED/Stream_LED.c
+        Middle_Layer/LED/Stream_LED.h
 )
 
 # Add STM32CubeMX generated sources

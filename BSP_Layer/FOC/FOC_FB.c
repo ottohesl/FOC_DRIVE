@@ -1,6 +1,7 @@
 #include "FOC_FB.h"
 #include "FOC_RUN.h"
 #include "ottohesl.h"
+#include "Filter_Tool/Filter_Tool.h"
 uint16_t adc_dma_buf[ADC1_TOTAL_CH] = {0};
 uint16_t vbus_filter[VBUS_FILTER_LEN] = {0};
 uint8_t filter_ptr = 0;
@@ -22,78 +23,81 @@ void ADC1_DMA_InitStart()
  * @return 1表示获取成功
  */
 uint8_t CUR_filter(const float *CUR, float *Filter_Result,enum FILTER_MODE mode) {
-    if (mode == NOMINAL_MODE) {
-        static uint8_t Index = 0;
-        float filter_sum[CH_ABC] = {0};
-        static float last_filter_sum[CH_ABC] = {0};
-        //检测到尖刺电流直接输出上一次合法的
-        if ((CUR[CH_A_CUR]>10||CUR[CH_A_CUR]<-10)||
-            (CUR[CH_B_CUR]>10||CUR[CH_B_CUR]<-10)||
-            (CUR[CH_C_CUR]>10||CUR[CH_C_CUR]<-10)) {
-            adc_filter_buf[CH_A_CUR][Index]=last_filter_sum[CH_A_CUR];
-            adc_filter_buf[CH_B_CUR][Index]=last_filter_sum[CH_B_CUR];
-            adc_filter_buf[CH_C_CUR][Index]=last_filter_sum[CH_C_CUR];
-        }else {
-            adc_filter_buf[CH_A_CUR][Index] = CUR[CH_A_CUR];
-            adc_filter_buf[CH_B_CUR][Index] = CUR[CH_B_CUR];
-            adc_filter_buf[CH_C_CUR][Index] = CUR[CH_C_CUR];
-        }
-        Index = (Index+1)%FILTER_BUFF;
-        for(uint8_t i=0; i<CH_ABC; i++) {
-            for (uint8_t j = 0; j<FILTER_BUFF; j++) {
-                filter_sum[i] += adc_filter_buf[i][j];
-            }
-        }
-        for(uint8_t i=0; i<CH_ABC; i++) {
-            Filter_Result[i] = filter_sum[i] / FILTER_BUFF;
-        }
-        last_filter_sum[CH_A_CUR] = Filter_Result[CH_A_CUR];
-        last_filter_sum[CH_B_CUR] = Filter_Result[CH_B_CUR];
-        last_filter_sum[CH_C_CUR] = Filter_Result[CH_C_CUR];
-        return 1;
-    }else {
-        static uint8_t Calc_Index = 0;
-        static float filter_calc[CH_ABC][FILTER_CALC] = {0};
-        static float filter_calc_sum[CH_ABC] = {0};
-        filter_calc[CH_A_CUR][Calc_Index] = CUR[CH_A_CUR];
-        filter_calc[CH_B_CUR][Calc_Index] = CUR[CH_B_CUR];
-        filter_calc[CH_C_CUR][Calc_Index] = CUR[CH_C_CUR];
-        Calc_Index++;
-        if(Calc_Index >= FILTER_CALC) {
+    switch (mode) {
+        case NOMINAL_MODE:
+            static uint8_t Index = 0;
+            float filter_sum[CH_ABC] = {0};
+            static float last_filter_sum[CH_ABC] = {0};
+            //检测到尖刺电流直接输出上一次合法的
+            if ((CUR[CH_A_CUR]>10||CUR[CH_A_CUR]<-10)||
+                (CUR[CH_B_CUR]>10||CUR[CH_B_CUR]<-10)||
+                (CUR[CH_C_CUR]>10||CUR[CH_C_CUR]<-10)) {
+                adc_filter_buf[CH_A_CUR][Index]=last_filter_sum[CH_A_CUR];
+                adc_filter_buf[CH_B_CUR][Index]=last_filter_sum[CH_B_CUR];
+                adc_filter_buf[CH_C_CUR][Index]=last_filter_sum[CH_C_CUR];
+                }else {
+                    adc_filter_buf[CH_A_CUR][Index] = CUR[CH_A_CUR];
+                    adc_filter_buf[CH_B_CUR][Index] = CUR[CH_B_CUR];
+                    adc_filter_buf[CH_C_CUR][Index] = CUR[CH_C_CUR];
+                }
+            Index = (Index+1)%FILTER_BUFF;
             for(uint8_t i=0; i<CH_ABC; i++) {
-                for (uint8_t j = 0; j<FILTER_CALC; j++) {
-                    filter_calc_sum[i] += filter_calc[i][j];
+                for (uint8_t j = 0; j<FILTER_BUFF; j++) {
+                    filter_sum[i] += adc_filter_buf[i][j];
                 }
             }
             for(uint8_t i=0; i<CH_ABC; i++) {
-                Filter_Result[i] = filter_calc_sum[i] / FILTER_CALC;
+                Filter_Result[i] = filter_sum[i] / FILTER_BUFF;
             }
-            return 1;//最后得到偏移值，状态置1
-        }
-        return 0;
+            last_filter_sum[CH_A_CUR] = Filter_Result[CH_A_CUR];
+            last_filter_sum[CH_B_CUR] = Filter_Result[CH_B_CUR];
+            last_filter_sum[CH_C_CUR] = Filter_Result[CH_C_CUR];
+            return 1;
+            break;
+        case CALIBRA_MODE:
+            static uint8_t Calc_Index = 0;
+            static float filter_calc[CH_ABC][FILTER_CALC] = {0};
+            static float filter_calc_sum[CH_ABC] = {0};
+            filter_calc[CH_A_CUR][Calc_Index] = CUR[CH_A_CUR];
+            filter_calc[CH_B_CUR][Calc_Index] = CUR[CH_B_CUR];
+            filter_calc[CH_C_CUR][Calc_Index] = CUR[CH_C_CUR];
+            Calc_Index++;
+            if(Calc_Index >= FILTER_CALC) {
+                for(uint8_t i=0; i<CH_ABC; i++) {
+                    for (uint8_t j = 0; j<FILTER_CALC; j++) {
+                        filter_calc_sum[i] += filter_calc[i][j];
+                    }
+                }
+                for(uint8_t i=0; i<CH_ABC; i++) {
+                    Filter_Result[i] = filter_calc_sum[i] / FILTER_CALC;
+                }
+                return 1;//最后得到偏移值，状态置1
+            }
+            return 0;
+            break;
+        default:
+            return 0;
+            break;
     }
-
 }
+FILTER_TOOL fit_Bus = {
+    .raw_data = 0,
+    .filtered_data = 0,
+    .fit_last_data = 0,
+    .filter_size = FILTER_BUFF,
+    .fit_allow_max = 24.0f,
+    .fit_index = 0
+};
 float Get_Bus_Voltage()
 {
     // 读取DMA缓存中母线通道原始值
     uint16_t raw = adc_dma_buf[CH_VBUS];
-
-    // 滑动平均滤波
-    vbus_filter[filter_ptr++] = raw;
-    if(filter_ptr >= VBUS_FILTER_LEN) filter_ptr = 0;
-
-    uint32_t sum = 0;
-    for(uint8_t i=0; i<VBUS_FILTER_LEN; i++)
-    {
-        sum += vbus_filter[i];
-    }
-    uint16_t avg_raw = sum / VBUS_FILTER_LEN;
-
     // 换算引脚电压 → 真实母线电压
-    float v_pin = (float)avg_raw * ADC_VREF / ADC_12BIT_MAX;
+    float v_pin = (float)raw * ADC_VREF / ADC_12BIT_MAX;
     float v_bus = v_pin * VOLT_SCALE;
-    return v_bus;
+    fit_Bus.raw_data = v_bus;
+    FILTER_Sliding_Mean(&fit_Bus);           //滑动均值滤波
+    return fit_Bus.filtered_data;
 }
 static float Get_CUR(uint8_t Index) {
     // 1.ADC原始值转SOx引脚电压
@@ -119,7 +123,7 @@ void Get_CUR_ABC(float *CUR) {
  *@brief 初始化获取三相电流的偏移值
  *@return 返回是否得到偏移值的结果
  */
-void Calc_Cur()
+void FOC_Calc_Cur()
 {
     float Calc[CH_ABC] = {0};
     //静止电机下，进行读取adc以校准
@@ -172,5 +176,9 @@ void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic,uint8_t N) {
     last_Ia = *Ia;
     last_Ib = *Ib;
     last_Ic = *Ic;
+}
+void FOC_FB_Update(FOC_FB *fb) {
+    fb->Bus_Voltage=Get_Bus_Voltage();
+    Get_Phase_Sequence(&fb->Ia,&fb->Ib,&fb->Ic,0);
 }
 

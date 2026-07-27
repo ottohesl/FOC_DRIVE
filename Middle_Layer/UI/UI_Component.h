@@ -5,6 +5,8 @@
 #ifndef UI_COMPONENT_H
 #define UI_COMPONENT_H
 #include <stdint.h>
+#include <string.h>
+#include "Main_Freertos.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
