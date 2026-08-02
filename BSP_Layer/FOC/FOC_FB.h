@@ -20,7 +20,7 @@
 #define ADC_VREF       3.3f
 #define ADC_12BIT_MAX  4096.0f
 /********************DRV8323电流检测参数**************************/
-#define DRV_VREF        3.3f        // 内部基准电压
+#define DRV_VREF        3.27f        // 内部基准电压
 #define DRV_GAIN        20.0f       // GAIN接DVDD，40倍增益
 #define R_SHUNT         0.002f       // 替换你实际采样电阻，例10mΩ填0.01Ω
 #define VREF_HALF       (DRV_VREF / 2.0f) // 1.65V零电流中点
@@ -41,7 +41,7 @@ void FOC_Calc_Cur();
 void ADC1_DMA_InitStart();
 float Get_Bus_Voltage();
 void Get_CUR_ABC(float *CUR);
-void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic,uint8_t N);
+void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic);
 uint8_t CUR_filter(const float *CUR, float *Filter_Result,enum FILTER_MODE mode);
 void FOC_FB_Update(FOC_FB *fb);
 extern uint8_t adc_data_ready;

@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
     float raw_data;                             //从dma得出的原始数据
     float Enc_angle;                            //编码器角度
+    float Enc_actual_angle;                     //定时器快照角度
     float Enc_speed;                            //编码器速度
     uint8_t Enc_Raw_buf[2];                     //编码器原始数据缓冲区
     float Enc_angle_buf[AS5600_ANGLE_BUFF];     //编码器解算角度缓冲区
@@ -34,6 +35,7 @@ typedef struct {
 
 
 // 函数声明
+void FOC_ENC_DATA_Init(AS5600_Enc_DATA *enc);
 uint16_t AS5600_ReadRawAngle(I2C_HandleTypeDef *hi2c);
 float AS5600_GetAngleDegrees(I2C_HandleTypeDef *hi2c);
 int8_t AS5600_Get_LR(I2C_HandleTypeDef *hi2c);
@@ -41,5 +43,5 @@ float AS5600_Get_Turns(I2C_HandleTypeDef *hi2c);
 float AS5600_CalcSpeed_MovAvg(float mech_angle_deg);
 float AS5600_Get_Speed(AS5600_Enc_DATA *calc);
 void FOC_ENC_Update(AS5600_Enc_DATA *calc);
-extern AS5600_Enc_DATA Enc_data;
+extern AS5600_Enc_DATA *g_Enc_ptr;
 #endif

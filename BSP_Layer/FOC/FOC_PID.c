@@ -1,50 +1,51 @@
 #include "FOC_PID.h"
-
 #include <math.h>
-
 #include "FOC_Math.h"
 #include "ottohesl.h"
 static void PID_Speed_Init(INC_PID *inc) {
-    inc->kp = 0.18f;
-    inc->ki = 50.0f;
-    inc->kd = 0.002f;
+    inc->kp = spe_kp;
+    inc->ki = spe_ki;
+    inc->kd = spe_kd;
     inc->error = 0.0f;
     inc->last_error = 0.0f;
     inc->prev_error = 0.0f;
     inc->increment = 0.0f;
     inc->increment_limit = Increment_Limit;
     inc->Ts = 0.0001f;
-    inc->output_max = LIN_V;
+    inc->output_max = SPE_LIN;
     inc->_output = 0.0f;
+    inc->dead_line = 0.2f;    //于0.2转每秒的速度就不用再调节了
 }
 static void PID_Iq_Init(POS_PID *pos) {
-    pos->kp = 3.5f;
-    pos->ki = 300.0f;
+    pos->kp = cur_kp;
+    pos->ki = cur_ki;
     pos->kd = 0.0f;
     pos->error = 0.0f;
     pos->last_error = 0.0f;
     pos->integral = 0.0f;
-    pos->integral_limit = Increment_Limit;
+    pos->integral_limit = Integral_Limit;
     pos->Ts = 0.0001f;
     pos->output_max = LIN_V;
     pos->_output = 0.0f;
+    pos->dead_line = 0.0f;    //死区范围
 }
 static void PID_Id_Init(POS_PID *pos) {
-    pos->kp = 4.4f;
-    pos->ki = 500.0f;
+    pos->kp = cur_kp;
+    pos->ki = cur_ki;
     pos->kd = 0.0f;
     pos->error = 0.0f;
     pos->last_error = 0.0f;
     pos->integral = 0.0f;
-    pos->integral_limit = Increment_Limit;
+    pos->integral_limit = Integral_Limit;
     pos->Ts = 0.0001f;
     pos->output_max = LIN_V;
     pos->_output = 0.0f;
+    pos->dead_line = 0.0f;    //死区范围
 }
 static void PID_POS_Init(POS_PID *pos) {
-    pos->kp = 0.0f;
-    pos->ki = 0.0f;
-    pos->kd = 0.0f;
+    pos->kp = pos_kp;
+    pos->ki = pos_ki;
+    pos->kd = pos_kd;
     pos->error = 0.0f;
     pos->last_error = 0.0f;
     pos->integral = 0.0f;
@@ -52,6 +53,7 @@ static void PID_POS_Init(POS_PID *pos) {
     pos->Ts = 0.0001f;
     pos->output_max = LIN_V;
     pos->_output = 0.0f;
+    pos->dead_line = 0.2f;    //死区范围
 }
 /**
  * @brief PID初始化
@@ -73,13 +75,18 @@ void FOC_PID_Init(FOC_PID *foc_pid)
 void FOC_INC_PID(INC_PID* S,float target_val,float current_val)
 {
     S->error = target_val-current_val;
-    float P = S->kp*(S->error-S->last_error);
-    float I = S->ki*S->error*S->Ts;
-    float D = S->kd*(S->error-2*S->last_error+S->prev_error)*S->Ts;
-    float increment = P + I + D;
+    float increment = 0.0f;
+     if(fabsf(S->error) > S->dead_line)
+     {
+         float P = S->kp*(S->error-S->last_error);
+         float I = S->ki*S->error*S->Ts;
+         float D = S->kd*(S->error-2*S->last_error+S->prev_error)*S->Ts;
+        increment = P + I + D;
+    }
     //增量限幅
     if (increment > S->increment_limit) increment = S->increment_limit;
     else if(increment < -S->increment_limit) increment = -S->increment_limit;
+    S->increment = increment;
     S->_output += increment;
     S->prev_error = S->last_error;
     S->last_error = S->error;
@@ -96,14 +103,25 @@ void FOC_INC_PID(INC_PID* S,float target_val,float current_val)
  */
 void FOC_POS_PID(POS_PID *C, float target_cur, float current_cur)
 {
-    C->error = target_cur-current_cur;
-    C->integral += C->error ;  //积分累加项
-    if(C->integral > C->integral_limit) C->integral = C->integral_limit;
-    if(C->integral < -C->integral_limit) C->integral = -C->integral_limit;
+    C->error = target_cur - current_cur;
     float P = C->kp * C->error;
-    float I = C->ki * C->integral * C->Ts; //积分累加
-    float D = C->kd * (C->error-C->last_error )* C->Ts;
-    float output = P + I + D;
+    float I = 0.0f;
+    float D = C->kd * (C->error - C->last_error )* C->Ts;
+    float output;
+    // 误差超出死区：正常运算，积分累加
+    if (fabsf(C->error) > C->dead_line)
+    {
+        C->integral += C->error ;
+        if(C->integral > C->integral_limit) C->integral = C->integral_limit;
+        if(C->integral < -C->integral_limit) C->integral = -C->integral_limit;
+        I = C->ki * C->integral * C->Ts;
+        output = P + I + D;
+    }
+    else
+    {
+        output = C->_output;
+    }
+
     if (output > C->output_max) output = C->output_max;
     else if (output < -C->output_max) output = -C->output_max;
     C->last_error = C->error;

@@ -88,8 +88,8 @@
     <Typography Id="V" Font="impact-2.ttf" Size="30" Bpp="4" IsVector="no" Direction="RTL" FallbackCharacter="?" WildcardCharacters="0123456789." WildcardCharacterRanges="0-9">
       <LanguageSetting Language="GB" Font="impact.ttf" Size="30" Bpp="4" IsVector="no" IsCompressed="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="." WildcardCharacterRanges="0-9" />
     </Typography>
-    <Typography Id="cur" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789." WildcardCharacterRanges="0-9">
-      <LanguageSetting Language="GB" Font="impact-2.ttf" Size="20" Bpp="4" IsVector="no" IsCompressed="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789." WildcardCharacterRanges="0-9" />
+    <Typography Id="cur" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.-" WildcardCharacterRanges="0-9">
+      <LanguageSetting Language="GB" Font="impact-2.ttf" Size="20" Bpp="4" IsVector="no" IsCompressed="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789.-" WildcardCharacterRanges="0-9" />
     </Typography>
     <Typography Id="angle" Font="impact-2.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789." WildcardCharacterRanges="0-9">
       <LanguageSetting Language="GB" Font="impact-2.ttf" Size="20" Bpp="4" IsVector="no" IsCompressed="no" Direction="LTR" FallbackCharacter="?" WildcardCharacters="0123456789." WildcardCharacterRanges="0-9" />

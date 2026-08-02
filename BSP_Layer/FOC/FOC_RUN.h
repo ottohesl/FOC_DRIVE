@@ -20,7 +20,7 @@ typedef enum {
     FOC_POSTION_MODE,
     FOC_STOP_MODE,
 }FOC_RUN_STATE;
-void SVPWM_TIM_RUN(SVPWM *svpwm,float target_speed);
+void FOC_MOTOR_STOP();
+void FOC_MOTOR_OPEN();
 void FOC_MOTOR_RUN(FOC_DRIVE *run_type, FOC_RUN_STATE state);
-extern VOFA_DATA vofa_data_run;
 #endif //FOC_RUN_H

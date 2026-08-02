@@ -59,6 +59,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middle_Layer/Filter_Tool/Filter_Tool.h
         Middle_Layer/LED/Stream_LED.c
         Middle_Layer/LED/Stream_LED.h
+        APP/FOC_APP/foc_app.c
+        APP/FOC_APP/foc_app.h
 )
 
 # Add STM32CubeMX generated sources
@@ -92,6 +94,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         BSP_Layer/FOC
         BSP_Layer/Main_Freertos
         Middle_Layer
+        APP/FOC_APP
 )
 
 # Add project symbols (macros)

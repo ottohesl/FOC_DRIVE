@@ -1,24 +1,7 @@
 #include "FOC_RUN.h"
-// 新增静态变量保存时间戳（放在函数外或用SPWM结构体存储）
-static uint32_t last_tick = 0;
-VOFA_DATA vofa_data_run ={
-.now_angle = 0.0f,
-    .now_speed = 0.0f,
-    .targe_angle = 0.0f,
-    .targe_speed =  0.0f,
-    .elect_angle = 0.0f,
-    .Udata.A = 0.0f,
-    .Udata.B = 0.0f,
-    .Udata.C = 0.0f,
-    .Idata.A = 0.0f,
-    .Idata.B = 0.0f,
-    .Idata.C = 0.0f,
-    .uq = 0.0f,
-    .ud = 0.0f,
-    .iq = 0.0f,
-    .id = 0.0f
-};
 
+#include "Filter_Tool/Filter_Tool.h"
+static uint32_t last_tick = 0;
 /**
  * 动态一阶RC滤波
  * @param x 输入值
@@ -96,7 +79,7 @@ void FOC_SVPWM_OPEN_RUN(SVPWM *svpwm,double target_speed) {
     }
     if(first == 0) {
         last_tick = current_tick; // 更新时间戳
-        double angle=AS5600_GetAngleDegrees(&i2c_AS5600 );
+        double angle=svpwm->elect_angle;
         svpwm->elect_angle = Solve_Electrical_Angle(angle);
         first = 1;
     }
@@ -115,13 +98,24 @@ void FOC_SVPWM_OPEN_RUN(SVPWM *svpwm,double target_speed) {
  * @return 输出给电流环
  */
 float FOC_SPEED_DRIVE(FOC_DRIVE *motor,float target_speed) {
-    //求解电角度
-    motor->FOC_SVPWM.elect_angle = Solve_Electrical_Angle(motor->FOC_ENC_DATA.Enc_angle);
     //pid求解
+    float dead_spe = 0.05f;
+    if (fabsf(motor->FOC_ENC_DATA.Enc_speed)<dead_spe) motor->FOC_ENC_DATA.Enc_speed = 0.0f;    //限制速度值抖动
     FOC_INC_PID(&motor->FOC_PID.spe_pid,target_speed,motor->FOC_ENC_DATA.Enc_speed);
     return -motor->FOC_PID.spe_pid._output;
 }
-
+FILTER_TOOL q_filter = {
+    .fit_last_data = 0,
+    .filtered_data = 0,
+    .fit_allow_max = 20,
+    .filter_size = 30,
+    .fit_index = 0,
+    .fit_buf = {0}
+};
+FILTER_TOOL d_filter = {
+    .fit_last_data = 0,
+    .filtered_data = 0,
+};
 /**
  * @brief 电流环
  * @param motor 电机结构体句柄
@@ -132,15 +126,27 @@ void FOC_CUR_DRIVE(FOC_DRIVE *motor,float Iq){
     float Ialpha = motor->FOC_CUR_PARAM.Ia;
     float Ibeta = (motor->FOC_CUR_PARAM.Ib-motor->FOC_CUR_PARAM.Ic) * SQRT_3_DIV_2;
     //帕克变换
-    float elect_angle =motor->FOC_SVPWM.elect_angle;
-    motor->FOC_SVPWM.iqd.id = Ialpha * cosf(elect_angle) + Ibeta * sinf(elect_angle);
-    motor->FOC_SVPWM.iqd.iq = -Ialpha * sinf(elect_angle) + Ibeta * cosf(elect_angle);
+    //求解电角度
+    motor->FOC_SVPWM.elect_angle = Solve_Electrical_Angle(motor->FOC_ENC_DATA.Enc_angle);
+    motor->FOC_SVPWM.iqd.id = Ialpha * cosf(motor->FOC_SVPWM.elect_angle) + Ibeta * sinf(motor->FOC_SVPWM.elect_angle);
+    motor->FOC_SVPWM.iqd.iq = -Ialpha * sinf(motor->FOC_SVPWM.elect_angle) + Ibeta * cosf(motor->FOC_SVPWM.elect_angle);
+    //对q、d轴电流进行rc一阶滤波
+    q_filter.raw_data = motor->FOC_SVPWM.iqd.iq;
+    d_filter.raw_data = motor->FOC_SVPWM.iqd.id;
+    FILTER_RC(&q_filter);
+    FILTER_RC(&d_filter);
+    //对iq进行均值滤波
+    q_filter.raw_data = q_filter.filtered_data;
+    FILTER_Sliding_Mean(&q_filter);
+    motor->FOC_SVPWM.iqd.iq = q_filter.filtered_data;
     //将给定需要的值进行pi调节
+    motor->FOC_PID.iq_pid.output_max = motor->FOC_CUR_PARAM.Bus_Voltage;  //将当前的实际adc电压作为输出上限
+    motor->FOC_PID.id_pid.output_max = motor->FOC_CUR_PARAM.Bus_Voltage;  //将当前的实际adc电压作为输出上限
     FOC_POS_PID(&motor->FOC_PID.iq_pid,Iq,motor->FOC_SVPWM.iqd.iq);
     FOC_POS_PID(&motor->FOC_PID.id_pid,0,motor->FOC_SVPWM.iqd.id);
     //输出Uq，作用于电机
     motor->FOC_SVPWM.qd.uq = motor->FOC_PID.iq_pid._output;
-    motor->FOC_SVPWM.qd.ud = motor->FOC_PID.id_pid._output;
+    motor->FOC_SVPWM.qd.ud = 0;
     //反park变化获取alpha和beta
     FOC_Svpwm_Solve(&motor->FOC_SVPWM);
     //给svpwm让电机旋转
@@ -149,15 +155,32 @@ void FOC_CUR_DRIVE(FOC_DRIVE *motor,float Iq){
     VectorActionTime(&motor->FOC_SVPWM, N, motor->FOC_CUR_PARAM.Bus_Voltage);
     FOC_Set_Svpwm(&motor->FOC_SVPWM,motor->FOC_CUR_PARAM.Bus_Voltage);
 }
-
+void FOC_MOTOR_STOP() {
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+    // // 互补通道
+    HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_1);
+    HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_2);
+    HAL_TIMEx_PWMN_Stop(&htim1, TIM_CHANNEL_3);
+}
+void FOC_MOTOR_OPEN() {
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    // // 互补通道
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+}
 void FOC_MOTOR_RUN(FOC_DRIVE *run_type, FOC_RUN_STATE state) {
     switch (state) {
         case FOC_OPEN_MODE:
-            FOC_SVPWM_OPEN_RUN(&run_type->FOC_SVPWM,100);
+            FOC_SVPWM_OPEN_RUN(&run_type->FOC_SVPWM,50);
             break;
         case FOC_SPEED_MODE:
-            float speed=FOC_SPEED_DRIVE(run_type,5);
-            FOC_CUR_DRIVE(run_type,speed);
+            MOTOR.FOC_PARAM.iq=FOC_SPEED_DRIVE(run_type,run_type->FOC_PARAM.speed);
+            FOC_CUR_DRIVE(run_type,MOTOR.FOC_PARAM.iq);
             break;
         case FOC_POSTION_MODE:
             break;

@@ -1,7 +1,18 @@
 #ifndef FOC_PID_H
 #define FOC_PID_H
 #include "main.h"
-#define Increment_Limit   3.0   //电压最大增量幅值（v）
+#define Increment_Limit   2.0f    //增量式单次增量最大值
+#define Integral_Limit   100.0f    //位置式积分最大限幅
+#define LIN_V  12.4f          // 设定基础母线电压
+#define SPE_LIN  74.0f        //速度环力矩最大值(当前母线电压最大值*10)
+#define cur_kp 0.1f           //iq稳定建议kp=1，ki=52.5
+#define cur_ki 0.3f           //iq越不稳定越要降低kp和ki的力矩影响，以提升速度环的精准度
+#define spe_kp 0.15f
+#define spe_ki 80.5f
+#define spe_kd 10.00f
+#define pos_kp 0.0f
+#define pos_ki 0.0f
+#define pos_kd 0.0f
 typedef struct {
     float kp;
     float ki;
@@ -14,6 +25,7 @@ typedef struct {
     float output_max;
     float _output;
     float Ts;
+    float dead_line;    //死区时间
 }INC_PID;             //增量式pid
 typedef struct {
     float kp;
@@ -26,6 +38,7 @@ typedef struct {
     float output_max;
     float _output;
     float Ts;
+    float dead_line;    //死区区间
 }POS_PID;           //位置式pid
 
 typedef struct {

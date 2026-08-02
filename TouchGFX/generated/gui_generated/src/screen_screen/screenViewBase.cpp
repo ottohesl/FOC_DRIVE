@@ -26,7 +26,7 @@ screenViewBase::screenViewBase()
     Voltage.setTypedText(touchgfx::TypedText(T_VOLTAGE));
     add(Voltage);
 
-    CUR1.setXY(58, 25);
+    CUR1.setXY(60, 25);
     CUR1.setColor(touchgfx::Color::getColorFromRGB(255, 228, 166));
     CUR1.setLinespacing(0);
     Unicode::snprintf(CUR1Buffer, CUR1_SIZE, "%s", touchgfx::TypedText(T_CUR1_NUM).getText());
@@ -35,7 +35,7 @@ screenViewBase::screenViewBase()
     CUR1.setTypedText(touchgfx::TypedText(T_CUR1));
     add(CUR1);
 
-    ANGLE1.setXY(58, 45);
+    ANGLE1.setXY(60, 45);
     ANGLE1.setColor(touchgfx::Color::getColorFromRGB(142, 250, 122));
     ANGLE1.setLinespacing(0);
     Unicode::snprintf(ANGLE1Buffer, ANGLE1_SIZE, "%s", touchgfx::TypedText(T_ANGLE1_NUM).getText());
@@ -44,7 +44,7 @@ screenViewBase::screenViewBase()
     ANGLE1.setTypedText(touchgfx::TypedText(T_ANGLE1));
     add(ANGLE1);
 
-    CUR2.setXY(58, 90);
+    CUR2.setXY(60, 92);
     CUR2.setColor(touchgfx::Color::getColorFromRGB(247, 217, 178));
     CUR2.setLinespacing(0);
     Unicode::snprintf(CUR2Buffer, CUR2_SIZE, "%s", touchgfx::TypedText(T_CUR2_NUM).getText());
@@ -53,7 +53,7 @@ screenViewBase::screenViewBase()
     CUR2.setTypedText(touchgfx::TypedText(T_CUR2));
     add(CUR2);
 
-    ANGLE2.setXY(58, 112);
+    ANGLE2.setXY(60, 112);
     ANGLE2.setColor(touchgfx::Color::getColorFromRGB(196, 245, 122));
     ANGLE2.setLinespacing(0);
     Unicode::snprintf(ANGLE2Buffer, ANGLE2_SIZE, "%s", touchgfx::TypedText(T_ANGLE2_NUM).getText());

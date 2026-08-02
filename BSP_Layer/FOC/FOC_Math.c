@@ -70,7 +70,7 @@ void Calibrate_Zero_angle(SPWM *spwm) {
     spwm->qd.uq=0;
     spwm->qd.ud=3;
     FOC_Spwm_Solve(spwm);
-    FOC_Set_Spwm(spwm,LIN_V);
+    FOC_Set_Spwm(spwm,7.4f);
     //HAL_Delay(300);
     elect_offset=AS5600_ReadRawAngle(&i2c_AS5600);
 }
@@ -170,7 +170,7 @@ uint8_t Sector_Judgment(SVPWM *svpwm, uint8_t *sector)
  */
 void VectorActionTime(SVPWM *foc_pwm, uint8_t sector,float bus_voltage)
 {
-    bus_voltage = bus_voltage * 1.5f;
+    bus_voltage = bus_voltage * 1.0f;
     float K = (float)foc_pwm->tim_pwm * SQRT_3 / bus_voltage;
 
     float X = K * foc_pwm->ab.beta;

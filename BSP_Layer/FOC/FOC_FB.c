@@ -86,7 +86,8 @@ FILTER_TOOL fit_Bus = {
     .fit_last_data = 0,
     .filter_size = FILTER_BUFF,
     .fit_allow_max = 24.0f,
-    .fit_index = 0
+    .fit_index = 0,
+    .fit_buf = {0}
 };
 float Get_Bus_Voltage()
 {
@@ -131,54 +132,57 @@ void FOC_Calc_Cur()
         Get_CUR_ABC(Calc);
     }while (CUR_filter(Calc,adc_filter_result,CALIBRA_MODE)!=1);
 }
-
+FILTER_TOOL cur_filter_a ={
+    .filter_size = 30,
+    .filtered_data = 0,
+    .fit_allow_max = 10,
+    .fit_last_data = 0,
+    .fit_index = 0,
+    .fit_buf = {0}
+};
+FILTER_TOOL cur_filter_b ={
+    .filter_size = 30,
+    .filtered_data = 0,
+    .fit_allow_max = 10,
+    .fit_last_data = 0,
+    .fit_index = 0,
+    .fit_buf = {0}
+};
+FILTER_TOOL cur_filter_c ={
+    .filter_size = 30,
+    .filtered_data = 0,
+    .fit_allow_max = 20,
+    .fit_last_data = 0,
+    .fit_index = 0,
+    .fit_buf = {0}
+};
 /**
  * @brief 依据相序舍弃短相
  */
-void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic,uint8_t N) {
-    static float last_Ia=0,last_Ib=0,last_Ic=0;
+void Get_Phase_Sequence(float *Ia, float *Ib, float *Ic) {
     if (Ia==NULL||Ib==NULL||Ic==NULL) return;
     float RAW_ABC[CH_ABC] = {0};
     float ABC_Phase[CH_ABC] = {0};
-    float ABC_Phase_More[CH_ABC] = {0};
     Get_CUR_ABC(RAW_ABC);
     CUR_filter(RAW_ABC,ABC_Phase,NOMINAL_MODE);
-    CUR_filter(ABC_Phase,ABC_Phase_More,NOMINAL_MODE);
-    switch (N) {
-    //     case 0: //扇区1
-    //     case 5: //扇区6
-    //         *Ib = ABC_Phase[1];
-    //         *Ic = ABC_Phase[2];
-    //         *Ia = -(*Ib+*Ic);
-    //         break;
-    //     case 1:
-    //     case 2:
-    //         *Ia = ABC_Phase[0];
-    //         *Ic = ABC_Phase[2];
-    //         *Ia = -(*Ia+*Ic);
-    //         break;
-    //     case 3:
-    //     case 4:
-    //         *Ia = ABC_Phase[0];
-    //         *Ib = ABC_Phase[1];
-    //         *Ic = -(*Ia+*Ib);
-    //         break;
-        default:
-            *Ia = ABC_Phase_More[0];
-            *Ib = ABC_Phase_More[1];
-            *Ic = ABC_Phase_More[2];
-    }
-    if (*Ia>10||*Ib>10||*Ic>10||*Ia<-10||*Ib<-10||*Ic<-10) {
-        *Ia = last_Ia;
-        *Ib = last_Ib;
-        *Ic = last_Ic;
-    }
-    last_Ia = *Ia;
-    last_Ib = *Ib;
-    last_Ic = *Ic;
+    cur_filter_a.raw_data = ABC_Phase[0];
+    cur_filter_b.raw_data = ABC_Phase[1];
+    cur_filter_c.raw_data = ABC_Phase[2];
+    FILTER_RC(&cur_filter_a);
+    FILTER_RC(&cur_filter_b);
+    FILTER_RC(&cur_filter_c);
+    cur_filter_a.raw_data=cur_filter_a.filtered_data;
+    cur_filter_b.raw_data=cur_filter_b.filtered_data;
+    cur_filter_c.raw_data=cur_filter_c.filtered_data;
+    FILTER_Sliding_Mean(&cur_filter_a);
+    FILTER_Sliding_Mean(&cur_filter_b);
+    FILTER_Sliding_Mean(&cur_filter_c);
+    *Ia = cur_filter_a.filtered_data;
+    *Ib = cur_filter_b.filtered_data;
+    *Ic = cur_filter_c.filtered_data;
 }
 void FOC_FB_Update(FOC_FB *fb) {
     fb->Bus_Voltage=Get_Bus_Voltage();
-    Get_Phase_Sequence(&fb->Ia,&fb->Ib,&fb->Ic,0);
+    Get_Phase_Sequence(&fb->Ia,&fb->Ib,&fb->Ic);
 }
 

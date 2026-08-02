@@ -3,7 +3,6 @@
 #include "stm32G4xx_hal.h"
 /**************************基本变量定义*********************************/
 #define FOC_TIM           &htim1
-#define LIN_V  7.4f          // 设定基础母线电压
 #define LIMIT_V 7.4f         // 电压限制
 #define POLE_PAIRS 7         // 极对数
 #define idr 1                // 方向

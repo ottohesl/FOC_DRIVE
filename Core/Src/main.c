@@ -33,6 +33,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "FOC_FB.h"
+#include "FOC_RUN.h"
 #include "LCD_1.14.h"
 #include "Main_Freertos.h"
 #include "ottohesl.h"
@@ -144,7 +145,7 @@ int main(void)
   HAL_Delay(50);
   /*****************************开启ADC读取通道*****************************/
   HAL_ADCEx_Calibration_Start(&hadc1,ADC_SINGLE_ENDED);
-  ADC1_DMA_InitStart();
+  ADC1_DMA_InitStart();//初始化校准电流
   /*****************************LCD初始化**************************************/
   LCD_Init();
   /*****************************开启定时器**************************************/
@@ -192,7 +193,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1_BOOST);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -203,7 +204,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
-  RCC_OscInitStruct.PLL.PLLN = 24;
+  RCC_OscInitStruct.PLL.PLLN = 28;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV6;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -270,18 +271,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     touchgfxSignalVSync();    //启动Touchgfx页面更新（50hz）
   }
   if (htim->Instance == TIM2) {
-    foc_control_time = 1;
-    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    // if(FocTask_Control != NULL)
-    // {
-    //   vTaskNotifyGiveFromISR(FocTask_Control, &xHigherPriorityTaskWoken); //将当前任务定义为就绪态
-    // }
-    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);//立即触发任务调度，从优先级更高的任务直接运行（无论是否还在其他低优先级任务运行）
+    if(FocTask_Busy == pdFALSE && FocTask_Control!=NULL)
+    {
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      vTaskNotifyGiveFromISR(FocTask_Control, &xHigherPriorityTaskWoken);//将当前任务定义为就绪态
+      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);//立即触发任务调度，从优先级更高的任务直接运行（无论是否还在其他低优先级任务运行）
+    }
   }
   //计算as5600编码器得到的角度以得出实时速度
   if (htim->Instance == TIM3) {
-    Enc_data.tim_enc_data.calc_flag =1;         //计算标志位置1
-    Enc_data.tim_enc_data.tim_index = Enc_data.Enc_Index;     //将缓冲区的索引值传入，索引代表的数字就是当前角度
+    if (g_Enc_ptr!=NULL) {
+      g_Enc_ptr->tim_enc_data.calc_flag =1;         //计算标志位置1
+      g_Enc_ptr->tim_enc_data.tim_index = g_Enc_ptr->Enc_Index;     //将缓冲区的索引值传入，索引代表的数字就是当前角度
+    }
   }
   /* USER CODE END Callback 1 */
 }
