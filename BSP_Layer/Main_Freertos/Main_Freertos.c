@@ -25,7 +25,7 @@ void FOC_Task(void *argument)
     FOC_SVPWM_Init(&MOTOR.FOC_SVPWM);       //初始化svpwm
     FOC_PID_Init(&MOTOR.FOC_PID);           //初始化pid参数
     FOC_ENC_DATA_Init(&MOTOR.FOC_ENC_DATA); //初始化编码器
-    //Calibrate_Zero_Eangle(&Calc_Zero); //校准零偏纠正角
+    //Calibrate_Zero_angle(&MOTOR.FOC_SPWM); //校准零偏纠正角
     /* USER CODE BEGIN FOC_Task */
     /* Infinite loop */
     float FOC_SVPWM_DATA[20] = {0};
@@ -64,7 +64,7 @@ void FOC_Task(void *argument)
         FOC_SVPWM_DATA[13] = MOTOR.FOC_CUR_PARAM.Ib;
         FOC_SVPWM_DATA[14] = MOTOR.FOC_CUR_PARAM.Ic;
         FOC_SVPWM_DATA[15] = MOTOR.FOC_PID.spe_pid.increment;   //单次增量
-        FOC_SVPWM_DATA[16] = MOTOR.FOC_PID.iq_pid.integral;     //位置式积分
+        FOC_SVPWM_DATA[16] = (float)elect_offset;     //零偏纠正角（原始值）
         OTTO_USB_CDC_JustFloat(FOC_SVPWM_DATA,17);
         FocTask_Busy = pdFALSE;
 

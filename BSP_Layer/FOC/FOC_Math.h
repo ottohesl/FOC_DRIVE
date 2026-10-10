@@ -8,7 +8,7 @@
 #define idr 1                // 方向
 #define SQRT_3 1.73205080757f// 根号3
 #define E_Deviation(n) (n * 360.0f / 4096.0f)           //用于动态获取电角度offset偏差值
-#define Read_E_Deviation (393 * 360.0f / 4096.0f)       //用于已知电角度偏移
+#define Read_E_Deviation (354 * 360.0f / 4096.0f)       //用于已知电角度偏移
 #define SQRT_3_DIV_2 0.86602540378f // 根号3/2
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
 /**************************运算结构体定义*********************************/
@@ -68,4 +68,5 @@ void FOC_Svpwm_Solve(SVPWM *svpwm);
 void FOC_Set_Svpwm(SVPWM *svpwm,float bus_voltage);
 uint8_t Sector_Judgment(SVPWM *svpwm, uint8_t *sector);
 void VectorActionTime(SVPWM *foc_pwm, uint8_t sector,float Udc);
+extern volatile uint16_t elect_offset ;
 #endif //FOC_MATH_H

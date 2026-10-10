@@ -267,7 +267,3 @@ void FOC_ENC_Update(AS5600_Enc_DATA *calc)
 		calc->tim_enc_data.calc_flag = 0;
 	}
 }
-
-
-
-

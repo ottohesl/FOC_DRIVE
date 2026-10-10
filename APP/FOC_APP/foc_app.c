@@ -14,6 +14,7 @@ Foc_App_Param APP_PARAM = {
     .pid_spe.kp = spe_kp,
     .pid_spe.ki = spe_ki,
     .pid_spe.kd = spe_kd,
+    .foc_param.speed = 1,
 };
 USB_DATA FOC_USB_DATA;
 typedef union{

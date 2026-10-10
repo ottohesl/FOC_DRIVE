@@ -163,8 +163,8 @@
             "Name": "RPS1",
             "X": 187,
             "Y": 12,
-            "Width": 62,
-            "Height": 18,
+            "Width": 60,
+            "Height": 16,
             "TextId": "rps1",
             "TextRotation": "0",
             "Color": {
@@ -184,8 +184,8 @@
             "Name": "RPS2",
             "X": 187,
             "Y": 109,
-            "Width": 59,
-            "Height": 18,
+            "Width": 57,
+            "Height": 16,
             "TextId": "rps2",
             "TextRotation": "0",
             "Color": {

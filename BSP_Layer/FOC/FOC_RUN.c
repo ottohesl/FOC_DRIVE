@@ -98,11 +98,10 @@ void FOC_SVPWM_OPEN_RUN(SVPWM *svpwm,double target_speed) {
  * @return 输出给电流环
  */
 float FOC_SPEED_DRIVE(FOC_DRIVE *motor,float target_speed) {
-    //pid求解
     float dead_spe = 0.05f;
-    if (fabsf(motor->FOC_ENC_DATA.Enc_speed)<dead_spe) motor->FOC_ENC_DATA.Enc_speed = 0.0f;    //限制速度值抖动
+    if (fabsf(motor->FOC_ENC_DATA.Enc_speed)<dead_spe) motor->FOC_ENC_DATA.Enc_speed = 0.0f;
     FOC_INC_PID(&motor->FOC_PID.spe_pid,target_speed,motor->FOC_ENC_DATA.Enc_speed);
-    return -motor->FOC_PID.spe_pid._output;
+    return motor->FOC_PID.spe_pid._output;
 }
 FILTER_TOOL q_filter = {
     .fit_last_data = 0,
@@ -111,10 +110,6 @@ FILTER_TOOL q_filter = {
     .filter_size = 30,
     .fit_index = 0,
     .fit_buf = {0}
-};
-FILTER_TOOL d_filter = {
-    .fit_last_data = 0,
-    .filtered_data = 0,
 };
 /**
  * @brief 电流环
@@ -127,23 +122,20 @@ void FOC_CUR_DRIVE(FOC_DRIVE *motor,float Iq){
     float Ibeta = (motor->FOC_CUR_PARAM.Ib-motor->FOC_CUR_PARAM.Ic) * SQRT_3_DIV_2;
     //帕克变换
     //求解电角度
-    motor->FOC_SVPWM.elect_angle = Solve_Electrical_Angle(motor->FOC_ENC_DATA.Enc_angle);
+    motor->FOC_SVPWM.elect_angle = -Solve_Electrical_Angle(motor->FOC_ENC_DATA.Enc_angle);
     motor->FOC_SVPWM.iqd.id = Ialpha * cosf(motor->FOC_SVPWM.elect_angle) + Ibeta * sinf(motor->FOC_SVPWM.elect_angle);
     motor->FOC_SVPWM.iqd.iq = -Ialpha * sinf(motor->FOC_SVPWM.elect_angle) + Ibeta * cosf(motor->FOC_SVPWM.elect_angle);
     //对q、d轴电流进行rc一阶滤波
     q_filter.raw_data = motor->FOC_SVPWM.iqd.iq;
-    d_filter.raw_data = motor->FOC_SVPWM.iqd.id;
     FILTER_RC(&q_filter);
-    FILTER_RC(&d_filter);
     //对iq进行均值滤波
     q_filter.raw_data = q_filter.filtered_data;
     FILTER_Sliding_Mean(&q_filter);
     motor->FOC_SVPWM.iqd.iq = q_filter.filtered_data;
     //将给定需要的值进行pi调节
-    motor->FOC_PID.iq_pid.output_max = motor->FOC_CUR_PARAM.Bus_Voltage;  //将当前的实际adc电压作为输出上限
-    motor->FOC_PID.id_pid.output_max = motor->FOC_CUR_PARAM.Bus_Voltage;  //将当前的实际adc电压作为输出上限
+    motor->FOC_PID.iq_pid.output_max = motor->FOC_CUR_PARAM.Bus_Voltage;
     FOC_POS_PID(&motor->FOC_PID.iq_pid,Iq,motor->FOC_SVPWM.iqd.iq);
-    FOC_POS_PID(&motor->FOC_PID.id_pid,0,motor->FOC_SVPWM.iqd.id);
+    //FOC_POS_PID(&motor->FOC_PID.id_pid,0,motor->FOC_SVPWM.iqd.id);
     //输出Uq，作用于电机
     motor->FOC_SVPWM.qd.uq = motor->FOC_PID.iq_pid._output;
     motor->FOC_SVPWM.qd.ud = 0;
