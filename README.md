@@ -151,5 +151,5 @@ void FOC_CUR_DRIVE(FOC_DRIVE *motor,float Iq){
 <img width="1728" height="690" alt="屏幕截图 2026-08-01 160115" src="https://github.com/user-attachments/assets/46f98a75-c8f4-4480-a870-d82e7c3fbff8" />
 <img width="1846" height="957" alt="屏幕截图 2026-07-31 161731" src="https://github.com/user-attachments/assets/14e464c3-ddb0-4782-90a8-7abc5b7d0ba5" />
 <img width="1920" height="1032" alt="{D7D51317-7778-433A-ADC3-2BE8F7D9BA0C}" src="https://github.com/user-attachments/assets/6d63229c-ad47-4556-b880-55313b008f6a" />
-
-
+## 四、视频展示
+https://weixin.qq.com/sph/AtJehjodbj
